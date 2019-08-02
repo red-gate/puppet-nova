@@ -29,12 +29,14 @@ describe 'nova::compute' do
       it { is_expected.to contain_nova_config('DEFAULT/vcpu_pin_set').with(:value => '<SERVICE DEFAULT>') }
       it { is_expected.to contain_nova_config('DEFAULT/resume_guests_state_on_host_boot').with_value('<SERVICE DEFAULT>') }
       it { is_expected.to_not contain_nova_config('vnc/novncproxy_base_url') }
-      it { is_expected.to contain_nova_config('key_manager/api_class').with_value('<SERVICE DEFAULT>') }
+      it { is_expected.to contain_nova_config('key_manager/backend').with_value('nova.keymgr.conf_key_mgr.ConfKeyManager') }
       it { is_expected.to contain_nova_config('barbican/barbican_endpoint').with_value('<SERVICE DEFAULT>') }
       it { is_expected.to contain_nova_config('barbican/barbican_api_version').with_value('<SERVICE DEFAULT>') }
       it { is_expected.to contain_nova_config('barbican/auth_endpoint').with_value('<SERVICE DEFAULT>') }
+      it { is_expected.to contain_nova_config('glance/verify_glance_signatures').with_value('<SERVICE DEFAULT>') }
       it { is_expected.to contain_nova_config('DEFAULT/max_concurrent_live_migrations').with_value('<SERVICE DEFAULT>') }
       it { is_expected.to contain_nova_config('compute/consecutive_build_service_disable_threshold').with_value('<SERVICE DEFAULT>') }
+      it { is_expected.to contain_nova_config('DEFAULT/reserved_huge_pages').with_value('<SERVICE DEFAULT>') }
 
       it { is_expected.to_not contain_package('cryptsetup').with( :ensure => 'present' )}
 
@@ -60,11 +62,6 @@ describe 'nova::compute' do
         is_expected.to contain_package('genisoimage').that_requires('Anchor[nova::install::begin]')
         is_expected.to contain_package('genisoimage').that_comes_before('Anchor[nova::install::end]')
       end
-
-      it 'configures nova pci_passthrough_whitelist' do
-        is_expected.to contain_class('nova::compute::pci')
-        is_expected.to contain_nova_config('pci/passthrough_whitelist').with(:value => '<SERVICE DEFAULT>')
-      end
     end
 
     context 'with overridden parameters' do
@@ -79,11 +76,12 @@ describe 'nova::compute' do
           :resize_confirm_window              => '3',
           :vcpu_pin_set                       => ['4-12','^8','15'],
           :resume_guests_state_on_host_boot   => true,
-          :keymgr_api_class                   => 'castellan.key_manager.barbican_key_manager.BarbicanKeyManager',
+          :keymgr_backend                     => 'castellan.key_manager.barbican_key_manager.BarbicanKeyManager',
           :barbican_endpoint                  => 'http://localhost',
           :barbican_api_version               => 'v1',
           :barbican_auth_endpoint             => 'http://127.0.0.1:5000/v3',
           :max_concurrent_live_migrations     => '4',
+          :verify_glance_signatures           => true,
           :consecutive_build_service_disable_threshold => '9',
         }
       end
@@ -108,7 +106,7 @@ describe 'nova::compute' do
       end
 
       it 'configures barbican service' do
-        is_expected.to contain_nova_config('key_manager/api_class').with_value('castellan.key_manager.barbican_key_manager.BarbicanKeyManager')
+        is_expected.to contain_nova_config('key_manager/backend').with_value('castellan.key_manager.barbican_key_manager.BarbicanKeyManager')
         is_expected.to contain_nova_config('barbican/barbican_endpoint').with_value('http://localhost')
         is_expected.to contain_nova_config('barbican/barbican_api_version').with_value('v1')
         is_expected.to contain_nova_config('barbican/auth_endpoint').with_value('http://127.0.0.1:5000/v3')
@@ -137,6 +135,7 @@ describe 'nova::compute' do
       it { is_expected.to contain_nova_config('compute/consecutive_build_service_disable_threshold').with_value('9') }
 
       it { is_expected.to contain_nova_config('DEFAULT/resume_guests_state_on_host_boot').with_value(true) }
+      it { is_expected.to contain_nova_config('glance/verify_glance_signatures').with_value(true) }
 
       it 'configures nova config_drive_format to vfat' do
         is_expected.to contain_nova_config('DEFAULT/config_drive_format').with_value('vfat')
@@ -146,58 +145,51 @@ describe 'nova::compute' do
       end
     end
 
-    context 'with pci params array' do
+    context 'with reserved_huge_pages string' do
       let :params do
         {
-          :pci_passthrough => [
-            {
-              "vendor_id"  => "8086",
-              "product_id" => "0126"
-            },
-            {
-              "vendor_id"        => "9096",
-              "product_id"       => "1520",
-              "physical_network" => "physnet1"
-            }
-          ],
+            :reserved_huge_pages => "foo"
         }
       end
-
-      it 'configures nova pci_passthrough_whitelist entries' do
-        is_expected.to contain_class('nova::compute::pci')
-        is_expected.to contain_nova_config('pci/passthrough_whitelist').with(
-          'value' => ['{"vendor_id":"8086","product_id":"0126"}','{"vendor_id":"9096","product_id":"1520","physical_network":"physnet1"}']
+      it 'configures nova reserved_huge_pages entries' do
+        is_expected.to contain_nova_config('DEFAULT/reserved_huge_pages').with(
+          'value' => 'foo'
         )
       end
     end
 
-    context 'with pci params JSON encoded string (deprecated)' do
+    context 'with reserved_huge_pages array' do
       let :params do
         {
-          :pci_passthrough => "[{\"vendor_id\":\"8086\",\"product_id\":\"0126\"},{\"vendor_id\":\"9096\",\"product_id\":\"1520\",\"physical_network\":\"physnet1\"}]",
+            :reserved_huge_pages => ["foo", "bar"]
         }
       end
-
-      it 'configures nova pci_passthrough_whitelist entries' do
-        is_expected.to contain_class('nova::compute::pci')
-        is_expected.to contain_nova_config('pci/passthrough_whitelist').with(
-          'value' => ['{"vendor_id":"8086","product_id":"0126"}','{"vendor_id":"9096","product_id":"1520","physical_network":"physnet1"}']
+      it 'configures nova reserved_huge_pages entries' do
+        is_expected.to contain_nova_config('DEFAULT/reserved_huge_pages').with(
+          'value' => ['foo','bar']
         )
+      end
+    end
+
+    context 'with barbican deprecated parameters' do
+      let :params do
+        {
+          :keymgr_api_class => 'castellan.key_manager.barbican_key_manager.BarbicanKeyManager',
+        }
+      end
+      it 'should set keymgr parameter' do
+        is_expected.to contain_nova_config('key_manager/backend').with_value('castellan.key_manager.barbican_key_manager.BarbicanKeyManager')
+        is_expected.to contain_package('cryptsetup').with( :ensure => 'present' )
       end
     end
 
     context 'when vcpu_pin_set and pci params are empty' do
       let :params do
-        { :vcpu_pin_set    => "",
-          :pci_passthrough => ""}
+        { :vcpu_pin_set    => ""}
       end
 
       it 'clears vcpu_pin_set configuration' do
         is_expected.to contain_nova_config('DEFAULT/vcpu_pin_set').with(:value => '<SERVICE DEFAULT>')
-      end
-      it 'clears pci_passthrough configuration' do
-        is_expected.to contain_class('nova::compute::pci')
-        is_expected.to contain_nova_config('pci/passthrough_whitelist').with(:value => '<SERVICE DEFAULT>')
       end
     end
 

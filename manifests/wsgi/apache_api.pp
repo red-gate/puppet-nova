@@ -46,7 +46,7 @@
 #
 #   [*workers*]
 #     Number of WSGI workers to spawn.
-#     Optional. Defaults to 1
+#     Optional. Defaults to $::os_workers
 #
 #   [*priority*]
 #     (optional) The priority for the vhost.
@@ -54,7 +54,7 @@
 #
 #   [*threads*]
 #     (optional) The number of threads for the vhost.
-#     Defaults to $::os_workers
+#     Defaults to 1
 #
 #   [*wsgi_process_display_name*]
 #     (optional) Name of the WSGI process display-name.
@@ -69,6 +69,18 @@
 #   [*ssl_certs_dir*]
 #     apache::vhost ssl parameters.
 #     Optional. Default to apache::vhost 'ssl_*' defaults.
+#
+#   [*access_log_file*]
+#     The log file name for the virtualhost.
+#     Optional. Defaults to false.
+#
+#   [*access_log_format*]
+#     The log format for the virtualhost.
+#     Optional. Defaults to false.
+#
+#   [*error_log_file*]
+#     The error log file name for the virtualhost.
+#     Optional. Defaults to undef.
 #
 #   [*custom_wsgi_process_options*]
 #     (optional) gives you the oportunity to add custom process options or to
@@ -94,7 +106,7 @@ class nova::wsgi::apache_api (
   $bind_host                   = undef,
   $path                        = '/',
   $ssl                         = true,
-  $workers                     = 1,
+  $workers                     = $::os_workers,
   $ssl_cert                    = undef,
   $ssl_key                     = undef,
   $ssl_chain                   = undef,
@@ -103,8 +115,11 @@ class nova::wsgi::apache_api (
   $ssl_crl                     = undef,
   $ssl_certs_dir               = undef,
   $wsgi_process_display_name   = undef,
-  $threads                     = $::os_workers,
+  $threads                     = 1,
   $priority                    = '10',
+  $access_log_file             = false,
+  $access_log_format           = false,
+  $error_log_file              = undef,
   $custom_wsgi_process_options = {},
 ) {
 
@@ -144,6 +159,9 @@ class nova::wsgi::apache_api (
     wsgi_script_file            => 'nova-api',
     wsgi_script_source          => $::nova::params::nova_api_wsgi_script_source,
     custom_wsgi_process_options => $custom_wsgi_process_options,
+    access_log_file             => $access_log_file,
+    access_log_format           => $access_log_format,
+    error_log_file              => $error_log_file,
   }
 
 }

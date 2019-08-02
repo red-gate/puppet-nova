@@ -46,6 +46,7 @@ class Puppet::Provider::Nova < Puppet::Provider::Openstack
     # NOTE(mnaser): We pass the arguments as an array to avoid problems with
     #               symbols in the arguments breaking things.
     Puppet::Util::Execution.execute(args, {
+      :uid                => nova_user,
       :failonfail         => true,
       :combine            => false,
       :custom_environment => {}
@@ -56,23 +57,12 @@ class Puppet::Provider::Nova < Puppet::Provider::Openstack
     self.class.nova_manage_request(args)
   end
 
-  def self.conf_filename
-    '/etc/nova/nova.conf'
+  def self.nova_user
+    'nova'
   end
 
-  # deprecated: method for old nova cli auth
-  def self.withenv(hash, &block)
-    saved = ENV.to_hash
-    hash.each do |name, val|
-      ENV[name.to_s] = val
-    end
-
-    yield
-  ensure
-    ENV.clear
-    saved.each do |name, val|
-      ENV[name] = val
-    end
+  def self.conf_filename
+    '/etc/nova/nova.conf'
   end
 
   def self.nova_conf
@@ -92,7 +82,7 @@ class Puppet::Provider::Nova < Puppet::Provider::Openstack
 
   def self.get_nova_credentials
     #needed keys for authentication
-    auth_keys = ['auth_uri', 'project_name', 'username', 'password']
+    auth_keys = ['auth_url', 'project_name', 'username', 'password']
     conf = nova_conf
     if conf and conf['keystone_authtoken'] and
         auth_keys.all?{|k| !conf['keystone_authtoken'][k].nil?}
@@ -121,45 +111,11 @@ class Puppet::Provider::Nova < Puppet::Provider::Openstack
 
   def self.get_auth_endpoint
     q = nova_credentials
-    "#{q['auth_uri']}"
+    "#{q['auth_url']}"
   end
 
   def self.auth_endpoint
     @auth_endpoint ||= get_auth_endpoint
-  end
-
-  # deprecated: method for old nova cli auth
-  def self.auth_nova(*args)
-    q = nova_credentials
-    authenv = {
-      :OS_AUTH_URL     => self.auth_endpoint,
-      :OS_USERNAME     => q['username'],
-      :OS_PROJECT_NAME => q['project_name'],
-      :OS_PASSWORD     => q['password']
-    }
-    if q.key?('region_name')
-      authenv[:OS_REGION_NAME] = q['region_name']
-    end
-    begin
-      withenv authenv do
-        nova(args)
-      end
-    rescue Exception => e
-      if (e.message =~ /\[Errno 111\] Connection refused/) or
-          (e.message =~ /\(HTTP 400\)/)
-        sleep 10
-        withenv authenv do
-          nova(args)
-        end
-      else
-       raise(e)
-      end
-    end
-  end
-
-  # deprecated: method for old nova cli auth
-  def auth_nova(*args)
-    self.class.auth_nova(args)
   end
 
   def self.reset

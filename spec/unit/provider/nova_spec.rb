@@ -11,7 +11,7 @@ describe Puppet::Provider::Nova do
 
   let :credential_hash do
     {
-      'auth_uri'     => 'https://192.168.56.210:35357/v2.0/',
+      'auth_url'     => 'https://192.168.56.210:35357/v2.0/',
       'project_name' => 'admin_tenant',
       'username'     => 'admin',
       'password'     => 'password',
@@ -61,34 +61,6 @@ describe Puppet::Provider::Nova do
       conf = {'keystone_authtoken' => credential_hash}
       klass.expects(:nova_conf).returns(conf)
       expect(klass.get_auth_endpoint).to eq(auth_endpoint)
-    end
-
-  end
-
-  describe 'when invoking the nova cli' do
-
-    it 'should set auth credentials in the environment' do
-      authenv = {
-        :OS_AUTH_URL     => auth_endpoint,
-        :OS_USERNAME     => credential_hash['username'],
-        :OS_PROJECT_NAME => credential_hash['project_name'],
-        :OS_PASSWORD     => credential_hash['password'],
-        :OS_REGION_NAME => credential_hash['region_name'],
-      }
-      klass.expects(:get_nova_credentials).with().returns(credential_hash)
-      klass.expects(:withenv).with(authenv)
-      klass.auth_nova('test_retries')
-    end
-
-    ['[Errno 111] Connection refused',
-     '(HTTP 400)'].reverse.each do |valid_message|
-      it "should retry when nova cli returns with error #{valid_message}" do
-        klass.expects(:get_nova_credentials).with().returns({})
-        klass.expects(:sleep).with(10).returns(nil)
-        klass.expects(:nova).twice.with(['test_retries']).raises(
-          Exception, valid_message).then.returns('')
-        klass.auth_nova('test_retries')
-      end
     end
 
   end

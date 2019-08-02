@@ -224,7 +224,7 @@
 #  [*vendordata_dynamic_auth_project_domain_name*]
 #   (optional) Project domain name for the vendordata dynamic plugin
 #    credentials.
-#   Defaults to $::os_service_default
+#   Defaults to 'Default'
 #
 #  [*vendordata_dynamic_auth_project_name*]
 #   (optional) Project name for the vendordata dynamic plugin credentials.
@@ -232,7 +232,7 @@
 #
 #  [*vendordata_dynamic_auth_user_domain_name*]
 #   (optional) User domain name for the vendordata dynamic plugin credentials.
-#   Defaults to $::os_service_default
+#   Defaults to 'Default'
 #
 #  [*vendordata_dynamic_auth_username*]
 #   (optional) User name for the vendordata dynamic plugin credentials.
@@ -323,9 +323,9 @@ class nova::api(
   $vendordata_dynamic_auth_auth_url            = $::os_service_default,
   $vendordata_dynamic_auth_os_region_name      = $::os_service_default,
   $vendordata_dynamic_auth_password            = $::os_service_default,
-  $vendordata_dynamic_auth_project_domain_name = $::os_service_default,
+  $vendordata_dynamic_auth_project_domain_name = 'Default',
   $vendordata_dynamic_auth_project_name        = $::os_service_default,
-  $vendordata_dynamic_auth_user_domain_name    = $::os_service_default,
+  $vendordata_dynamic_auth_user_domain_name    = 'Default',
   $vendordata_dynamic_auth_username            = $::os_service_default,
   # DEPRECATED PARAMETER
   $conductor_workers                           = undef,
@@ -459,7 +459,6 @@ as a standalone service, or httpd for being run by a httpd server")
     'DEFAULT/metadata_listen':                     value => $metadata_listen;
     'DEFAULT/metadata_listen_port':                value => $metadata_listen_port;
     'DEFAULT/osapi_compute_listen_port':           value => $osapi_compute_listen_port;
-    'DEFAULT/osapi_volume_listen':                 value => $api_bind_address;
     'DEFAULT/osapi_compute_workers':               value => $osapi_compute_workers;
     'DEFAULT/metadata_workers':                    value => $metadata_workers;
     'DEFAULT/enable_network_quota':                value => $enable_network_quota;

@@ -50,7 +50,6 @@ describe 'nova::api' do
         is_expected.to contain_nova_config('DEFAULT/osapi_compute_listen_port').with('value' => '8774')
         is_expected.to contain_nova_config('DEFAULT/metadata_listen').with('value' => '0.0.0.0')
         is_expected.to contain_nova_config('DEFAULT/metadata_listen_port').with('value' => '8775')
-        is_expected.to contain_nova_config('DEFAULT/osapi_volume_listen').with('value' => '0.0.0.0')
         is_expected.to contain_nova_config('DEFAULT/osapi_compute_workers').with('value' => '5')
         is_expected.to contain_nova_config('DEFAULT/metadata_workers').with('value' => '5')
         is_expected.to contain_nova_config('api/fping_path').with('value' => '/usr/sbin/fping')
@@ -75,9 +74,9 @@ describe 'nova::api' do
         is_expected.to contain_nova_config('vendordata_dynamic_auth/auth_url').with('value' => '<SERVICE DEFAULT>')
         is_expected.to contain_nova_config('vendordata_dynamic_auth/os_region_name').with('value' => '<SERVICE DEFAULT>')
         is_expected.to contain_nova_config('vendordata_dynamic_auth/password').with('value' => '<SERVICE DEFAULT>')
-        is_expected.to contain_nova_config('vendordata_dynamic_auth/project_domain_name').with('value' => '<SERVICE DEFAULT>')
+        is_expected.to contain_nova_config('vendordata_dynamic_auth/project_domain_name').with('value' => 'Default')
         is_expected.to contain_nova_config('vendordata_dynamic_auth/project_name').with('value' => '<SERVICE DEFAULT>')
-        is_expected.to contain_nova_config('vendordata_dynamic_auth/user_domain_name').with('value' => '<SERVICE DEFAULT>')
+        is_expected.to contain_nova_config('vendordata_dynamic_auth/user_domain_name').with('value' => 'Default')
         is_expected.to contain_nova_config('vendordata_dynamic_auth/username').with('value' => '<SERVICE DEFAULT>')
       end
 
@@ -154,7 +153,6 @@ describe 'nova::api' do
         is_expected.to contain_nova_config('DEFAULT/osapi_compute_listen_port').with('value' => '8874')
         is_expected.to contain_nova_config('DEFAULT/metadata_listen').with('value' => '127.0.0.1')
         is_expected.to contain_nova_config('DEFAULT/metadata_listen_port').with('value' => '8875')
-        is_expected.to contain_nova_config('DEFAULT/osapi_volume_listen').with('value' => '192.168.56.210')
         is_expected.to contain_nova_config('api/use_forwarded_for').with('value' => false)
         is_expected.to contain_nova_config('DEFAULT/osapi_compute_workers').with('value' => '1')
         is_expected.to contain_nova_config('DEFAULT/metadata_workers').with('value' => '2')

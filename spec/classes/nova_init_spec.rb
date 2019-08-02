@@ -31,8 +31,7 @@ describe 'nova' do
         :refreshonly => true
       )}
 
-      it 'configures image service' do
-        is_expected.to contain_nova_config('DEFAULT/image_service').with_value('nova.image.glance.GlanceImageService')
+      it 'configures glance api servers' do
         is_expected.to contain_nova_config('glance/api_servers').with_value('http://localhost:9292')
       end
 
@@ -66,6 +65,9 @@ describe 'nova' do
         is_expected.to contain_nova_config('DEFAULT/cpu_allocation_ratio').with_value('<SERVICE DEFAULT>')
         is_expected.to contain_nova_config('DEFAULT/ram_allocation_ratio').with_value('<SERVICE DEFAULT>')
         is_expected.to contain_nova_config('DEFAULT/disk_allocation_ratio').with_value('<SERVICE DEFAULT>')
+        is_expected.to contain_nova_config('DEFAULT/ssl_only').with_value(false)
+        is_expected.to contain_nova_config('DEFAULT/cert').with_value('<SERVICE DEFAULT>')
+        is_expected.to contain_nova_config('DEFAULT/key').with_value('<SERVICE DEFAULT>')
       end
 
       it 'configures block_device_allocate params' do
@@ -77,9 +79,8 @@ describe 'nova' do
     context 'with overridden parameters' do
 
       let :params do
-        { :debug                                   => true,
-          :log_dir                                 => '/var/log/nova2',
-          :image_service                           => 'nova.image.local.LocalImageService',
+        {
+          :glance_api_servers                      => 'http://localhost:9292',
           :default_transport_url                   => 'rabbit://rabbit_user:password@localhost:5673',
           :rpc_response_timeout                    => '30',
           :control_exchange                        => 'nova',
@@ -98,7 +99,7 @@ describe 'nova' do
           :notification_transport_url              => 'rabbit://rabbit_user:password@localhost:5673',
           :notification_driver                     => 'ceilometer.compute.nova_notifier',
           :notification_topics                     => 'openstack',
-          :notify_api_faults                       => true,
+          :notification_format                     => 'unversioned',
           :report_interval                         => '60',
           :os_region_name                          => 'MyRegion',
           :use_ipv6                                => true,
@@ -115,6 +116,9 @@ describe 'nova' do
           :block_device_allocate_retries           => '60',
           :block_device_allocate_retries_interval  => '3',
           :my_ip                                   => '192.0.2.1',
+          :ssl_only                                => true,
+          :cert                                    => '/etc/ssl/private/snakeoil.pem',
+          :key                                     => '/etc/ssl/certs/snakeoil.pem',
         }
       end
 
@@ -129,9 +133,8 @@ describe 'nova' do
         })
       end
 
-      it 'configures image service' do
-        is_expected.to contain_nova_config('DEFAULT/image_service').with_value('nova.image.local.LocalImageService')
-        is_expected.to_not contain_nova_config('glance/api_servers')
+      it 'configures glance api servers' do
+        is_expected.to contain_nova_config('glance/api_servers')
       end
 
       it 'configures auth_strategy' do
@@ -180,10 +183,13 @@ describe 'nova' do
         is_expected.to contain_nova_config('oslo_messaging_notifications/transport_url').with_value('rabbit://rabbit_user:password@localhost:5673')
         is_expected.to contain_nova_config('oslo_messaging_notifications/driver').with_value('ceilometer.compute.nova_notifier')
         is_expected.to contain_nova_config('oslo_messaging_notifications/topics').with_value('openstack')
-        is_expected.to contain_nova_config('notifications/notify_api_faults').with_value(true)
+        is_expected.to contain_nova_config('notifications/notification_format').with_value('unversioned')
         is_expected.to contain_nova_config('DEFAULT/report_interval').with_value('60')
         is_expected.to contain_nova_config('os_vif_linux_bridge/use_ipv6').with_value('true')
         is_expected.to contain_nova_config('cinder/os_region_name').with_value('MyRegion')
+        is_expected.to contain_nova_config('DEFAULT/ssl_only').with_value(true)
+        is_expected.to contain_nova_config('DEFAULT/cert').with_value('/etc/ssl/private/snakeoil.pem')
+        is_expected.to contain_nova_config('DEFAULT/key').with_value('/etc/ssl/certs/snakeoil.pem')
       end
 
       context 'with multiple notification_driver' do
@@ -231,6 +237,7 @@ describe 'nova' do
         is_expected.to contain_nova_config('oslo_messaging_rabbit/rabbit_hosts').with_value('rabbit:5673,rabbit2:5674')
         is_expected.to contain_nova_config('oslo_messaging_rabbit/rabbit_ha_queues').with_value(true)
         is_expected.to contain_nova_config('oslo_messaging_rabbit/kombu_reconnect_delay').with_value('<SERVICE DEFAULT>')
+        is_expected.to contain_nova_config('oslo_messaging_rabbit/kombu_failover_strategy').with_value('<SERVICE DEFAULT>')
         is_expected.to contain_nova_config('oslo_messaging_rabbit/kombu_compression').with_value('<SERVICE DEFAULT>')
         is_expected.to contain_nova_config('oslo_messaging_rabbit/amqp_durable_queues').with_value('<SERVICE DEFAULT>')
         is_expected.to contain_oslo__messaging__rabbit('nova_config').with(
@@ -250,6 +257,7 @@ describe 'nova' do
         is_expected.to contain_nova_config('oslo_messaging_rabbit/rabbit_hosts').with_value('rabbit:5673')
         is_expected.to contain_nova_config('oslo_messaging_rabbit/rabbit_ha_queues').with_value('<SERVICE DEFAULT>')
         is_expected.to contain_nova_config('oslo_messaging_rabbit/kombu_reconnect_delay').with_value('<SERVICE DEFAULT>')
+        is_expected.to contain_nova_config('oslo_messaging_rabbit/kombu_failover_strategy').with_value('<SERVICE DEFAULT>')
         is_expected.to contain_nova_config('oslo_messaging_rabbit/amqp_durable_queues').with_value('<SERVICE DEFAULT>')
         is_expected.to contain_oslo__messaging__rabbit('nova_config').with(
           :rabbit_use_ssl     => '<SERVICE DEFAULT>',

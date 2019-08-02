@@ -4,7 +4,7 @@
 # should be considered to be constant
 class nova::params {
   include ::openstacklib::defaults
-
+  $group = 'nova'
   case $::osfamily {
     'RedHat': {
       # package names
@@ -17,6 +17,7 @@ class nova::params {
       $consoleauth_package_name      = 'openstack-nova-console'
       $doc_package_name              = 'openstack-nova-doc'
       $libvirt_package_name          = 'libvirt'
+      $libvirt_guests_package_name   = 'libvirt-client'
       $libvirt_daemon_package_prefix = 'libvirt-daemon-'
       $libvirt_nwfilter_package_name = 'libvirt-daemon-config-nwfilter'
       $network_package_name          = 'openstack-nova-network'
@@ -34,6 +35,7 @@ class nova::params {
       $conductor_service_name        = 'openstack-nova-conductor'
       $consoleauth_service_name      = 'openstack-nova-consoleauth'
       $libvirt_service_name          = 'libvirtd'
+      $libvirt_guests_service_name   = 'libvirt-guests'
       $virtlock_service_name         = 'virtlockd'
       $virtlog_service_name          = undef
       $network_service_name          = 'openstack-nova-network'
@@ -45,7 +47,7 @@ class nova::params {
       # redhat specific config defaults
       $root_helper                   = 'sudo nova-rootwrap'
       $lock_path                     = '/var/lib/nova/tmp'
-      $nova_log_group                = 'nova'
+      $nova_log_group                = 'root'
       $nova_wsgi_script_path         = '/var/www/cgi-bin/nova'
       $nova_api_wsgi_script_source   = '/usr/bin/nova-api-wsgi'
       $placement_wsgi_script_source  = '/usr/bin/nova-placement-api'
@@ -70,6 +72,8 @@ class nova::params {
           $messagebus_service_name  = undef
         }
       }
+      $nova_user                    = 'nova'
+      $nova_group                   = 'nova'
     }
     'Debian': {
       # package names
@@ -132,6 +136,8 @@ class nova::params {
         }
       }
       $libvirt_service_name            = 'libvirtd'
+      $nova_user                       = 'nova'
+      $nova_group                      = 'nova'
     }
     default: {
       fail("Unsupported osfamily: ${::osfamily} operatingsystem: ${::operatingsystem}, \

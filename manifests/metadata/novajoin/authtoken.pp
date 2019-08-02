@@ -21,12 +21,12 @@
 #   Defaults to 'services'
 #
 # [*user_domain_name*]
-#   (Optional) Name of domain for $username
-#   Defaults to $::os_service_default
+#   (Optional) Name of domain for $user_domain_name
+#   Defaults to 'Default'
 #
 # [*project_domain_name*]
-#   (Optional) Name of domain for $project_name
-#   Defaults to $::os_service_default
+#   (Optional) Name of domain for $project_domain_name
+#   Defaults to 'Default'
 #
 # [*insecure*]
 #   (Optional) If true, explicitly allow TLS without checking server cert
@@ -178,22 +178,13 @@
 #   (in seconds). Set to -1 to disable caching completely. Integer value
 #   Defaults to $::os_service_default.
 #
-# DEPRECATED PARAMETERS
-#
-# [*revocation_cache_time*]
-#   (Optional) Determines the frequency at which the list of revoked tokens is
-#   retrieved from the Identity service (in seconds). A high number of
-#   revocation events combined with a low cache duration may significantly
-#   reduce performance. Only valid for PKI tokens. Integer value
-#   Defaults to undef
-#
 class nova::metadata::novajoin::authtoken(
   $username                       = 'novajoin',
   $password                       = $::os_service_default,
   $auth_url                       = 'http://127.0.0.1:35357/',
   $project_name                   = 'services',
-  $user_domain_name               = $::os_service_default,
-  $project_domain_name            = $::os_service_default,
+  $user_domain_name               = 'Default',
+  $project_domain_name            = 'Default',
   $insecure                       = $::os_service_default,
   $auth_section                   = $::os_service_default,
   $auth_type                      = 'password',
@@ -222,16 +213,10 @@ class nova::metadata::novajoin::authtoken(
   $manage_memcache_package        = false,
   $region_name                    = $::os_service_default,
   $token_cache_time               = $::os_service_default,
-  # DEPRECATED PARAMETERS
-  $revocation_cache_time          = undef,
 ) {
 
   if is_service_default($password) {
     fail('Please set password for novajoin service user')
-  }
-
-  if $revocation_cache_time {
-    warning('revocation_cache_time parameter is deprecated, has no effect and will be removed in the future.')
   }
 
   keystone::resource::authtoken { 'novajoin_config':

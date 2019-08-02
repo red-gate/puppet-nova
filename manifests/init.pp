@@ -73,10 +73,6 @@
 #   option.
 #   Defaults to $::os_service_default
 #
-# [*image_service*]
-#   (optional) Service used to search for and retrieve images.
-#   Defaults to 'nova.image.glance.GlanceImageService'
-#
 # [*glance_api_servers*]
 #   (optional) List of addresses for api servers.
 #   Defaults to 'http://localhost:9292'
@@ -126,6 +122,12 @@
 # [*kombu_reconnect_delay*]
 #   (optional) How long to wait before reconnecting in response to an AMQP
 #   consumer cancel notification. (floating point value)
+#   Defaults to $::os_service_default
+#
+# [*kombu_failover_strategy*]
+#   (Optional) Determines how the next RabbitMQ node is chosen in case the one
+#   we are currently connected to becomes unavailable. Takes effect only if
+#   more than one RabbitMQ node is provided in config. (string value)
 #   Defaults to $::os_service_default
 #
 # [*kombu_compression*]
@@ -276,7 +278,7 @@
 #
 # [*ca_file*]
 #   (optional) CA certificate file to use to verify connecting clients
-#   Defaults to false, not set_
+#   Defaults to false, not set
 #
 # [*nova_public_key*]
 #   (optional) Install public key in .ssh/authorized_keys for the 'nova' user.
@@ -289,6 +291,18 @@
 #   for key type).  Expects a hash of the form { type => 'key-type', key =>
 #   'key-data' }, where 'key-type' is one of (ssh-rsa, ssh-dsa, ssh-ecdsa) and
 #   'key-data' is the contents of the private key file.
+#
+# [*ssl_only*]
+#   (optional) Disallow non-encrypted connections.
+#   Defaults to false
+#
+# [*cert*]
+#   (optional) Path to SSL certificate file.
+#   Defaults to $::os_service_default
+#
+# [*key*]
+#   (optional) SSL key file (if separate from cert).
+#   Defaults to $::os_service_default
 #
 # [*notification_transport_url*]
 #   (optional) A URL representing the messaging driver to use for notifications
@@ -305,10 +319,9 @@
 #   (optional) AMQP topic used for OpenStack notifications
 #   Defaults to ::os_service_default
 #
-# [*notify_api_faults*]
-#   (optional) If set, send api.fault notifications on caught
-#   exceptions in the API service
-#   Defaults to false
+# [*notification_format*]
+#   (optional) Format used for OpenStack notifications
+#   Defaults to ::os_service_default
 #
 # [*notify_on_state_change*]
 #   (optional) If set, send compute.instance.update notifications
@@ -441,6 +454,19 @@
 #     zmq (for zeromq)
 #   Defaults to $::os_service_default
 #
+# [*image_service*]
+#   (optional) Service used to search for and retrieve images.
+#
+# [*notify_api_faults*]
+#   (optional) If set, send api.fault notifications on caught
+#   exceptions in the API service
+#   Defaults to undef
+#
+# [*notify_on_api_faults*]
+#   (optional) If set, send api.fault notifications on caught
+#   exceptions in the API service
+#   Defaults to undef
+#
 class nova(
   $ensure_package                         = 'present',
   $database_connection                    = undef,
@@ -460,7 +486,6 @@ class nova(
   $default_transport_url                  = $::os_service_default,
   $rpc_response_timeout                   = $::os_service_default,
   $control_exchange                       = $::os_service_default,
-  $image_service                          = 'nova.image.glance.GlanceImageService',
   # these glance params should be optional
   # this should probably just be configured as a glance client
   $glance_api_servers                     = 'http://localhost:9292',
@@ -473,6 +498,7 @@ class nova(
   $kombu_ssl_keyfile                      = $::os_service_default,
   $kombu_ssl_version                      = $::os_service_default,
   $kombu_reconnect_delay                  = $::os_service_default,
+  $kombu_failover_strategy                = $::os_service_default,
   $kombu_compression                      = $::os_service_default,
   $amqp_durable_queues                    = $::os_service_default,
   $amqp_server_request_prefix             = $::os_service_default,
@@ -508,13 +534,16 @@ class nova(
   $key_file                               = false,
   $nova_public_key                        = undef,
   $nova_private_key                       = undef,
+  $ssl_only                               = false,
+  $cert                                   = $::os_service_default,
+  $key                                    = $::os_service_default,
   $use_syslog                             = undef,
   $use_stderr                             = undef,
   $log_facility                           = undef,
   $notification_transport_url             = $::os_service_default,
   $notification_driver                    = $::os_service_default,
   $notification_topics                    = $::os_service_default,
-  $notify_api_faults                      = false,
+  $notification_format                    = $::os_service_default,
   $notify_on_state_change                 = undef,
   $os_region_name                         = $::os_service_default,
   $cinder_catalog_info                    = $::os_service_default,
@@ -541,6 +570,9 @@ class nova(
   $rabbit_userid                          = $::os_service_default,
   $rabbit_virtual_host                    = $::os_service_default,
   $rpc_backend                            = $::os_service_default,
+  $image_service                          = undef,
+  $notify_api_faults                      = undef,
+  $notify_on_api_faults                   = undef,
 ) inherits nova::params {
 
   include ::nova::deps
@@ -565,6 +597,19 @@ class nova(
 nova::rabbit_port, nova::rabbit_userid, nova::rabbit_virtual_host and \
 nova::rpc_backend are deprecated. Please use  nova::default_transport_url \
 instead.")
+  }
+
+  if $notify_api_faults {
+    warning('The notify_api_faults parameter is deprecated.')
+  }
+
+  if $notify_on_api_faults {
+    warning('The notify_on_api_faults parameter is deprecated.')
+  }
+
+  if $image_service {
+    warning('The unused image_service parameter is deprecated, as we are \
+already using python-glanceclient instead of old glance client.')
   }
 
   if $use_ssl {
@@ -650,16 +695,16 @@ but should be one of: ssh-rsa, ssh-dsa, ssh-ecdsa.")
     purge => $purge_config,
   }
 
-  if $image_service == 'nova.image.glance.GlanceImageService' {
-    if $glance_api_servers {
-      nova_config { 'glance/api_servers': value => $glance_api_servers }
-    }
+  if $glance_api_servers {
+    nova_config { 'glance/api_servers': value => $glance_api_servers }
   }
 
   nova_config {
+    'DEFAULT/ssl_only':              value => $ssl_only;
+    'DEFAULT/cert':                  value => $cert;
+    'DEFAULT/key':                   value => $key;
     'DEFAULT/my_ip':                 value => $my_ip;
     'api/auth_strategy':             value => $auth_strategy;
-    'DEFAULT/image_service':         value => $image_service;
     'DEFAULT/host':                  value => $host;
     'DEFAULT/cpu_allocation_ratio':  value => $cpu_allocation_ratio;
     'DEFAULT/ram_allocation_ratio':  value => $ram_allocation_ratio;
@@ -674,6 +719,7 @@ but should be one of: ssh-rsa, ssh-dsa, ssh-ecdsa.")
     heartbeat_timeout_threshold => $rabbit_heartbeat_timeout_threshold,
     heartbeat_rate              => $rabbit_heartbeat_rate,
     kombu_reconnect_delay       => $kombu_reconnect_delay,
+    kombu_failover_strategy     => $kombu_failover_strategy,
     amqp_durable_queues         => $amqp_durable_queues,
     kombu_compression           => $kombu_compression,
     kombu_ssl_ca_certs          => $kombu_ssl_ca_certs,
@@ -750,7 +796,7 @@ but should be one of: ssh-rsa, ssh-dsa, ssh-ecdsa.")
   nova_config {
     'cinder/catalog_info':                            value => $cinder_catalog_info;
     'os_vif_linux_bridge/use_ipv6':                   value => $use_ipv6;
-    'notifications/notify_api_faults':                      value => $notify_api_faults;
+    'notifications/notification_format':              value => $notification_format;
     # Following may need to be broken out to different nova services
     'DEFAULT/state_path':                             value => $state_path;
     'DEFAULT/service_down_time':                      value => $service_down_time;

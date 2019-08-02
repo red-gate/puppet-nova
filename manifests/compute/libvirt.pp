@@ -33,6 +33,12 @@
 #   cpu_mode="custom" and virt_type="kvm|qemu".
 #   Defaults to undef
 #
+# [*libvirt_cpu_model_extra_flags*]
+#   (optional) This allows specifying granular CPU feature flags when
+#   specifying CPU models. Only valid, if cpu_mode and cpu_model
+#   attributes are specified and only if cpu_mode="custom".
+#   Defaults to undef
+#
 # [*libvirt_snapshot_image_format*]
 #   (optional) Format to save snapshots to. Some filesystems
 #   have a preference and only operate on raw or qcow2
@@ -126,6 +132,27 @@
 #   you actually want to deploy.
 #   Defaults to true for backward compatibility.
 #
+# [*log_outputs*]
+#   (optional) Defines log outputs, as specified in
+#   https://libvirt.org/logging.html
+#   Defaults to undef
+#
+# [*volume_use_multipath*]
+#   (optional) Use multipath connection of the
+#   iSCSI or FC volume. Volumes can be connected in the
+#   LibVirt as multipath devices.
+#   Defaults to $::os_service_default
+#
+# [*nfs_mount_options*]
+#   (optional) Mount options passed to the NFS client. See section of the
+#   nfs man page for details.
+#   Defaults to $::os_service_default
+#
+# [*mem_stats_period_seconds*]
+#   (optional) A number of seconds to memory usage statistics period,
+#   zero or negative value mean to disable memory usage statistics.
+#   Defaults to $::os_service_default
+#
 class nova::compute::libvirt (
   $ensure_package                             = 'present',
   $libvirt_virt_type                          = 'kvm',
@@ -133,6 +160,7 @@ class nova::compute::libvirt (
   $migration_support                          = false,
   $libvirt_cpu_mode                           = false,
   $libvirt_cpu_model                          = undef,
+  $libvirt_cpu_model_extra_flags              = undef,
   $libvirt_snapshot_image_format              = $::os_service_default,
   $libvirt_disk_cachemodes                    = [],
   $libvirt_hw_disk_discard                    = $::os_service_default,
@@ -150,6 +178,10 @@ class nova::compute::libvirt (
   $compute_driver                             = 'libvirt.LibvirtDriver',
   $preallocate_images                         = $::os_service_default,
   $manage_libvirt_services                    = true,
+  $log_outputs                                = undef,
+  $volume_use_multipath                       = $::os_service_default,
+  $nfs_mount_options                          = $::os_service_default,
+  $mem_stats_period_seconds                   = $::os_service_default,
 ) inherits nova::params {
 
   include ::nova::deps
@@ -180,6 +212,12 @@ class nova::compute::libvirt (
     include ::nova::migration::libvirt
   }
 
+  if $log_outputs {
+    libvirtd_config {
+      'log_outputs': value => "\"${log_outputs}\"";
+    }
+  }
+
   # manage_libvirt_services is here for backward compatibility to support
   # deployments that do not include nova::compute::libvirt::services
   #
@@ -203,18 +241,21 @@ class nova::compute::libvirt (
   }
 
   nova_config {
-    'DEFAULT/compute_driver':        value => $compute_driver;
-    'DEFAULT/preallocate_images':    value => $preallocate_images;
-    'vnc/vncserver_listen':          value => $vncserver_listen;
-    'libvirt/virt_type':             value => $libvirt_virt_type;
-    'libvirt/cpu_mode':              value => $libvirt_cpu_mode_real;
-    'libvirt/snapshot_image_format': value => $libvirt_snapshot_image_format;
-    'libvirt/inject_password':       value => $libvirt_inject_password;
-    'libvirt/inject_key':            value => $libvirt_inject_key;
-    'libvirt/inject_partition':      value => $libvirt_inject_partition;
-    'libvirt/hw_disk_discard':       value => $libvirt_hw_disk_discard;
-    'libvirt/hw_machine_type':       value => $libvirt_hw_machine_type;
-    'libvirt/enabled_perf_events':   value => join(any2array($libvirt_enabled_perf_events), ',');
+    'DEFAULT/compute_driver':           value => $compute_driver;
+    'DEFAULT/preallocate_images':       value => $preallocate_images;
+    'vnc/vncserver_listen':             value => $vncserver_listen;
+    'libvirt/virt_type':                value => $libvirt_virt_type;
+    'libvirt/cpu_mode':                 value => $libvirt_cpu_mode_real;
+    'libvirt/snapshot_image_format':    value => $libvirt_snapshot_image_format;
+    'libvirt/inject_password':          value => $libvirt_inject_password;
+    'libvirt/inject_key':               value => $libvirt_inject_key;
+    'libvirt/inject_partition':         value => $libvirt_inject_partition;
+    'libvirt/hw_disk_discard':          value => $libvirt_hw_disk_discard;
+    'libvirt/hw_machine_type':          value => $libvirt_hw_machine_type;
+    'libvirt/enabled_perf_events':      value => join(any2array($libvirt_enabled_perf_events), ',');
+    'libvirt/volume_use_multipath':     value => $volume_use_multipath;
+    'libvirt/nfs_mount_options':        value => $nfs_mount_options;
+    'libvirt/mem_stats_period_seconds': value => $mem_stats_period_seconds;
   }
 
   # cpu_model param is only valid if cpu_mode=custom
@@ -223,13 +264,19 @@ class nova::compute::libvirt (
     validate_string($libvirt_cpu_model)
     nova_config {
       'libvirt/cpu_model': value => $libvirt_cpu_model;
+      'libvirt/cpu_model_extra_flags': value => $libvirt_cpu_model_extra_flags;
     }
   } else {
     nova_config {
       'libvirt/cpu_model': ensure => absent;
+      'libvirt/cpu_model_extra_flags': ensure => absent;
     }
     if $libvirt_cpu_model {
       warning('$libvirt_cpu_model requires that $libvirt_cpu_mode => "custom" and will be ignored')
+    }
+
+    if $libvirt_cpu_model_extra_flags {
+      warning('$libvirt_cpu_model_extra_flags requires that $libvirt_cpu_mode => "custom" and will be ignored')
     }
   }
 

@@ -23,15 +23,18 @@ describe 'nova::wsgi::apache_api' do
         :path                        => '/',
         :servername                  => facts[:fqdn],
         :ssl                         => true,
-        :threads                     => facts[:os_workers],
+        :threads                     => 1,
         :user                        => 'nova',
-        :workers                     => 1,
+        :workers                     => facts[:os_workers],
         :wsgi_daemon_process         => 'nova-api',
         :wsgi_process_group          => 'nova-api',
         :wsgi_script_dir             => platform_params[:wsgi_script_path],
         :wsgi_script_file            => 'nova-api',
         :wsgi_script_source          => platform_params[:api_wsgi_script_source],
         :custom_wsgi_process_options => {},
+        :access_log_file             => false,
+        :access_log_format           => false,
+        :error_log_file              => nil,
       )}
     end
 
@@ -57,6 +60,9 @@ describe 'nova::wsgi::apache_api' do
           :custom_wsgi_process_options => {
             'python_path' => '/my/python/path',
           },
+          :access_log_file             => '/var/log/httpd/access_log',
+          :access_log_format           => 'some format',
+          :error_log_file              => '/var/log/httpd/error_log'
         }
       end
 
@@ -71,7 +77,7 @@ describe 'nova::wsgi::apache_api' do
         :path                        => '/',
         :servername                  => 'dummy.host',
         :ssl                         => false,
-        :threads                     => facts[:os_workers],
+        :threads                     => 1,
         :user                        => 'nova',
         :workers                     => 37,
         :wsgi_daemon_process         => 'nova-api',
@@ -83,6 +89,9 @@ describe 'nova::wsgi::apache_api' do
         :custom_wsgi_process_options => {
           'python_path' => '/my/python/path',
         },
+        :access_log_file             => '/var/log/httpd/access_log',
+        :access_log_format           => 'some format',
+        :error_log_file              => '/var/log/httpd/error_log'
       )}
     end
 
