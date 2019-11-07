@@ -114,6 +114,8 @@ class nova::db (
   $database_retry_interval_real = pick($::nova::database_retry_interval, $database_retry_interval)
   $database_max_overflow_real = pick($::nova::database_max_overflow, $database_max_overflow)
 
+  notify {"nova_database_connection: ${::nova::database_connection}"}
+
   notify {"running nova::db with database_connection_real: ${database_connection_real}":}
   $srv_def = is_service_default($database_connection_real)
 
