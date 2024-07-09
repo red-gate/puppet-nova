@@ -4,13 +4,13 @@
 # ==Parameters
 #
 # [*extra_params*]
-#   (optional) String of extra command line parameters to append
+#   (Optional) String of extra command line parameters to append
 #   to the nova-manage db sync command. These will be inserted in
 #   the command line between 'nova-manage' and 'db sync'.
 #   Defaults to undef
 #
 # [*db_sync_timeout*]
-#   (optional) Timeout for the execution of the db_sync
+#   (Optional) Timeout for the execution of the db_sync
 #   Defaults to 300
 #
 class nova::db::sync(
@@ -18,11 +18,12 @@ class nova::db::sync(
   $db_sync_timeout = 300,
 ) {
 
-  include ::nova::deps
-  include ::nova::params
+  include nova::deps
+  include nova::params
 
   exec { 'nova-db-sync':
     command     => "/usr/bin/nova-manage ${extra_params} db sync",
+    user        => $::nova::params::user,
     refreshonly => true,
     try_sleep   => 5,
     tries       => 10,
@@ -31,9 +32,9 @@ class nova::db::sync(
     subscribe   => [
       Anchor['nova::install::end'],
       Anchor['nova::config::end'],
-      Anchor['nova::db::end'],
       Anchor['nova::dbsync::begin']
     ],
     notify      => Anchor['nova::dbsync::end'],
+    tag         => 'openstack-db',
   }
 }

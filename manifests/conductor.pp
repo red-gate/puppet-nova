@@ -18,38 +18,27 @@
 #
 # [*workers*]
 #   (optional) Number of workers for OpenStack Conductor service
-#   Defaults to $::os_workers
+#   Defaults to $facts['os_workers']
 #
 # [*enable_new_services*]
 #   (optional) When a new service (for example "nova-compute") start up, it gets
 #   registered in the database as an enabled service. Setting this to false will
 #   cause new services to be disabled when added. This config option is only used
 #   by the conductor service which is responsible for creating the service entries.
-#   Defaults to $::os_service_default
-#
-# DEPRECATED PARAMETERS
-#
-# [*use_local*]
-#   (optional) Perform nova-conductor operations locally
-#   Defaults to undef
+#   Defaults to $facts['os_service_default']
 #
 class nova::conductor(
-  $enabled             = true,
-  $manage_service      = true,
-  $ensure_package      = 'present',
-  $workers             = $::os_workers,
-  $enable_new_services = $::os_service_default,
-  # DEPREACTED PARAMETERS
-  $use_local           = undef,
+  Boolean $enabled        = true,
+  Boolean $manage_service = true,
+  $ensure_package         = 'present',
+  $workers                = $facts['os_workers'],
+  $enable_new_services    = $facts['os_service_default'],
 ) {
 
-  if $use_local {
-    warning('use_local parameter is deprecated, has no effect and will be dropped in a future release.')
-  }
-
-  include ::nova::deps
-  include ::nova::db
-  include ::nova::params
+  include nova::deps
+  include nova::db
+  include nova::params
+  include nova::availability_zone
 
   nova::generic_service { 'conductor':
     enabled        => $enabled,
@@ -59,13 +48,8 @@ class nova::conductor(
     ensure_package => $ensure_package,
   }
 
-  if $workers {
-    nova_config {
-      'conductor/workers': value => $workers;
-    }
-  }
-
   nova_config {
+    'conductor/workers':           value => $workers;
     'DEFAULT/enable_new_services': value => $enable_new_services
   }
 }

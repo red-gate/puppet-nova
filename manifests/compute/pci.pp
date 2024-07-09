@@ -6,26 +6,29 @@
 #
 #  [*passthrough*]
 #   (optional) Pci passthrough list of hash.
-#   Defaults to $::os_service_default
+#   Defaults to $facts['os_service_default']
 #   Example of format:
 #   [ { "vendor_id" => "1234","product_id" => "5678" },
 #     { "vendor_id" => "4321","product_id" => "8765", "physical_network" => "default" } ]
-
+#
+#  [*report_in_placement*]
+#   (optional) Enable PCI resource inventory reporting to Placement.
+#   Defaults to $facts['os_service_default']
+#
 class nova::compute::pci(
-  $passthrough = $::os_service_default
+  $passthrough         = $facts['os_service_default'],
+  $report_in_placement = $facts['os_service_default'],
 ) {
-  include ::nova::deps
+  include nova::deps
 
-  $picked_passthrough = pick_default($::nova::compute::pci_passthrough,$passthrough)
-
-  if $picked_passthrough and
-      !is_service_default($picked_passthrough) and
-      !empty($picked_passthrough) {
-    $passthrough_real = to_array_of_json_strings($picked_passthrough)
+  if !is_service_default($passthrough) and !empty($passthrough) {
+    $passthrough_real = to_array_of_json_strings($passthrough)
   } else {
-    $passthrough_real = $::os_service_default
+    $passthrough_real = $facts['os_service_default']
   }
+
   nova_config {
-    'pci/passthrough_whitelist': value => $passthrough_real;
+    'pci/device_spec':         value => $passthrough_real;
+    'pci/report_in_placement': value => $report_in_placement;
   }
 }

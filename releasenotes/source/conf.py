@@ -45,8 +45,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'puppet-nova Release Notes'
-copyright = u'2017, Puppet OpenStack Developers'
+copyright = '2017, Puppet OpenStack Developers'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -87,7 +86,7 @@ exclude_patterns = []
 #show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = 'native'
 
 # A list of ignored prefixes for module index sorting.
 #modindex_common_prefix = []
@@ -138,7 +137,6 @@ html_static_path = ['_static']
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
-html_last_updated_fmt = '%Y-%m-%d %H:%M'
 
 # If true, SmartyPants will be used to convert quotes and dashes to
 # typographically correct entities.
@@ -183,23 +181,12 @@ htmlhelp_basename = 'puppet-novaReleaseNotesdoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
-latex_elements = {
-# The paper size ('letterpaper' or 'a4paper').
-#'papersize': 'letterpaper',
-
-# The font size ('10pt', '11pt' or '12pt').
-#'pointsize': '10pt',
-
-# Additional stuff for the LaTeX preamble.
-#'preamble': '',
-}
-
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'puppet-novaReleaseNotes.tex', u'puppet-nova Release Notes Documentation',
-   u'2017, Puppet OpenStack Developers', 'manual'),
+  ('index', 'puppet-novaReleaseNotes.tex', 'puppet-nova Release Notes Documentation',
+   '2017, Puppet OpenStack Developers', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -228,8 +215,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'puppet-novareleasenotes', u'puppet-nova Release Notes Documentation',
-     [u'2017, Puppet OpenStack Developers'], 1)
+    ('index', 'puppet-novareleasenotes', 'puppet-nova Release Notes Documentation',
+     ['2017, Puppet OpenStack Developers'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -242,8 +229,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'puppet-novaReleaseNotes', u'puppet-nova Release Notes Documentation',
-   u'2017, Puppet OpenStack Developers', 'puppet-novaReleaseNotes', 'One line description of project.',
+  ('index', 'puppet-novaReleaseNotes', 'puppet-nova Release Notes Documentation',
+   '2017, Puppet OpenStack Developers', 'puppet-novaReleaseNotes', 'One line description of project.',
    'Miscellaneous'),
 ]
 
@@ -263,6 +250,7 @@ texinfo_documents = [
 locale_dirs = ['locale/']
 
 # openstackdocstheme options
-repository_name = 'openstack/puppet-nova'
-bug_project = 'puppet-nova'
-bug_tag = ''
+openstackdocs_repo_name = 'openstack/puppet-nova'
+openstackdocs_bug_project = 'puppet-nova'
+openstackdocs_bug_tag = ''
+openstackdocs_auto_name = False

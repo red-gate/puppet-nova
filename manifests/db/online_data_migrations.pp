@@ -18,11 +18,12 @@ class nova::db::online_data_migrations(
   $db_sync_timeout = 300,
 ) {
 
-  include ::nova::deps
-  include ::nova::params
+  include nova::deps
+  include nova::params
 
   exec { 'nova-db-online-data-migrations':
     command     => "/usr/bin/nova-manage ${extra_params} db online_data_migrations",
+    user        => $::nova::params::user,
     refreshonly => true,
     try_sleep   => 5,
     tries       => 10,
@@ -31,7 +32,6 @@ class nova::db::online_data_migrations(
     subscribe   => [
       Anchor['nova::install::end'],
       Anchor['nova::config::end'],
-      Anchor['nova::dbsync_api::end'],
       Anchor['nova::db_online_data_migrations::begin']
     ],
     notify      => Anchor['nova::db_online_data_migrations::end'],

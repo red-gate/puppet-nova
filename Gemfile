@@ -1,7 +1,24 @@
 source ENV['GEM_SOURCE'] || "https://rubygems.org"
 
 group :development, :test, :system_tests do
-  gem 'puppet-openstack_spec_helper', :require => 'false', :git => 'https://git.openstack.org/openstack/puppet-openstack_spec_helper'
+  spec_helper_dir = '/home/zuul/src/opendev.org/openstack/puppet-openstack_spec_helper'
+  if File.directory?(spec_helper_dir)
+    if ENV['ZUUL_PROJECT'] == 'openstack/puppet-openstack_spec_helper'
+      gem 'puppet-openstack_spec_helper',
+        :path    => '../..',
+        :require => 'false'
+    else
+      gem 'puppet-openstack_spec_helper',
+        :path    => spec_helper_dir,
+        :require => 'false'
+    end
+  else
+    spec_helper_version = ENV['ZUUL_BRANCH'] || "master"
+    gem 'puppet-openstack_spec_helper',
+      :git     => 'https://opendev.org/openstack/puppet-openstack_spec_helper',
+      :ref     => spec_helper_version,
+      :require => 'false'
+  end
 end
 
 if facterversion = ENV['FACTER_GEM_VERSION']

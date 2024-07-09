@@ -11,23 +11,27 @@ describe 'nova::logging' do
     {
       :logging_context_format_string => '%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [%(request_id)s %(user_identity)s] %(instance)s%(message)s',
       :logging_default_format_string => '%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [-] %(instance)s%(message)s',
-      :logging_debug_format_suffix => '%(funcName)s %(pathname)s:%(lineno)d',
-      :logging_exception_prefix => '%(asctime)s.%(msecs)03d %(process)d TRACE %(name)s %(instance)s',
-      :log_config_append => '/etc/nova/logging.conf',
-      :publish_errors => true,
-      :default_log_levels => {
+      :logging_debug_format_suffix   => '%(funcName)s %(pathname)s:%(lineno)d',
+      :logging_exception_prefix      => '%(asctime)s.%(msecs)03d %(process)d TRACE %(name)s %(instance)s',
+      :log_config_append             => '/etc/nova/logging.conf',
+      :publish_errors                => true,
+      :default_log_levels            => {
         'amqp' => 'WARN', 'amqplib' => 'WARN', 'boto' => 'WARN',
         'sqlalchemy' => 'WARN', 'suds' => 'INFO', 'iso8601' => 'WARN',
         'requests.packages.urllib3.connectionpool' => 'WARN' },
-     :fatal_deprecations => true,
-     :instance_format => '[instance: %(uuid)s] ',
-     :instance_uuid_format => '[instance: %(uuid)s] ',
-     :log_date_format => '%Y-%m-%d %H:%M:%S',
-     :use_syslog => true,
-     :use_stderr => false,
-     :log_facility => 'LOG_FOO',
-     :log_dir => '/var/log',
-     :debug => true,
+     :fatal_deprecations             => true,
+     :instance_format                => '[instance: %(uuid)s] ',
+     :instance_uuid_format           => '[instance: %(uuid)s] ',
+     :log_date_format                => '%Y-%m-%d %H:%M:%S',
+     :use_syslog                     => true,
+     :use_json                       => true,
+     :use_journal                    => true,
+     :use_stderr                     => false,
+     :log_facility                   => 'LOG_FOO',
+     :log_dir                        => '/var/log/foo',
+     :log_file                       => '/var/log/foo/nova.log',
+     :watch_log_file                 => true,
+     :debug                          => true,
     }
   end
 
@@ -56,10 +60,14 @@ describe 'nova::logging' do
   shared_examples 'basic default logging settings' do
     it 'configures nova logging settings with default values' do
       is_expected.to contain_oslo__log('nova_config').with(
-        :use_syslog => '<SERVICE DEFAULT>',
-        :use_stderr => '<SERVICE DEFAULT>',
-        :log_dir    => '/var/log/nova',
-        :debug      => '<SERVICE DEFAULT>',
+        :use_syslog     => '<SERVICE DEFAULT>',
+        :use_json       => '<SERVICE DEFAULT>',
+        :use_journal    => '<SERVICE DEFAULT>',
+        :use_stderr     => '<SERVICE DEFAULT>',
+        :log_dir        => '/var/log/nova',
+        :log_file       => '<SERVICE DEFAULT>',
+        :watch_log_file => '<SERVICE DEFAULT>',
+        :debug          => '<SERVICE DEFAULT>',
       )
     end
   end
@@ -68,9 +76,13 @@ describe 'nova::logging' do
     it 'configures nova logging settings with non-default values' do
       is_expected.to contain_oslo__log('nova_config').with(
         :use_syslog          => true,
+        :use_json            => true,
+        :use_journal         => true,
         :use_stderr          => false,
         :syslog_log_facility => 'LOG_FOO',
-        :log_dir             => '/var/log',
+        :log_dir             => '/var/log/foo',
+        :log_file            => '/var/log/foo/nova.log',
+        :watch_log_file      => true,
         :debug               => true,
       )
     end

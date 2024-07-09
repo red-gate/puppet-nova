@@ -4,116 +4,90 @@
 #
 # === Parameters:
 #
-# [*quota_instances*]
+# [*driver*]
+#   (optional) Driver to use for quota checks.
+#   Defaults to $facts['os_service_default']
+#
+# [*instances*]
 #   (optional) Number of instances
-#   Defaults to 10
+#   Defaults to $facts['os_service_default']
 #
-# [*quota_cores*]
+# [*cores*]
 #   (optional) Number of cores
-#   Defaults to 20
+#   Defaults to $facts['os_service_default']
 #
-# [*quota_ram*]
+# [*ram*]
 #   (optional) Ram in MB
-#   Defaults to 51200
+#   Defaults to $facts['os_service_default']
 #
-# [*quota_floating_ips*]
-#   (optional) Number of floating IPs
-#   Defaults to 10
-#
-# [*quota_fixed_ips*]
-#   (optional) Number of fixed IPs (this should be at least the number of instances allowed)
-#   Defaults to -1
-#
-# [*quota_metadata_items*]
+# [*metadata_items*]
 #   (optional) Number of metadata items per instance
-#   Defaults to 128
+#   Defaults to $facts['os_service_default']
 #
-# [*quota_injected_files*]
+# [*injected_files*]
 #   (optional) Number of files that can be injected per instance
-#   Defaults to 5
+#   Defaults to $facts['os_service_default']
 #
-# [*quota_injected_file_content_bytes*]
+# [*injected_file_content_bytes*]
 #   (optional) Maximum size in bytes of injected files
-#   Defaults to 10240
+#   Defaults to $facts['os_service_default']
 #
-#
-# [*quota_injected_file_path_length*]
+# [*injected_file_path_length*]
 #   (optional) Maximum size in bytes of injected file path
-#   Defaults to 255
+#   Defaults to $facts['os_service_default']
 #
-# [*quota_security_groups*]
-#   (optional) Number of security groups
-#   Defaults to 10
-#
-# [*quota_security_group_rules*]
-#   (optional) Number of security group rules
-#   Defaults to 20
-#
-# [*quota_key_pairs*]
+# [*key_pairs*]
 #   (optional) Number of key pairs
-#   Defaults to 100
+#   Defaults to $facts['os_service_default']
 #
-# [*quota_server_groups*]
+# [*server_groups*]
 #   (optional) Number of server groups per project
-#   Defaults to 10
+#   Defaults to $facts['os_service_default']
 #
-# [*quota_server_group_members*]
+# [*server_group_members*]
 #   (optional) Number of servers per server group
-#   Defaults to 10
+#   Defaults to $facts['os_service_default']
 #
-# [*reservation_expire*]
-#   (optional) Time until reservations expire in seconds
-#   Defaults to 86400
+# [*recheck_quota*]
+#   (optional) Recheck quota after resource creation to prevent allowing
+#   quota to be exceeded.
+#   Defaults to $facts['os_service_default']
 #
-# [*until_refresh*]
-#   (optional) Count of reservations until usage is refreshed
-#   Defaults to 0
-#
-# [*max_age*]
-#   (optional) Number of seconds between subsequent usage refreshes
-#   Defaults to 0
-#
+# [*count_usage_from_placement*]
+#   (optional Enable the counting of quota usage from the placement service.
+#   Defaults to $facts['os_service_default']
 #
 class nova::quota(
-  $quota_instances = 10,
-  $quota_cores = 20,
-  $quota_ram = 51200,
-  $quota_floating_ips = 10,
-  $quota_fixed_ips = -1,
-  $quota_metadata_items = 128,
-  $quota_injected_files = 5,
-  $quota_injected_file_content_bytes = 10240,
-  $quota_injected_file_path_length = 255,
-  $quota_security_groups = 10,
-  $quota_security_group_rules = 20,
-  $quota_key_pairs = 100,
-  $quota_server_groups = 10,
-  $quota_server_group_members = 10,
-  $reservation_expire = 86400,
-  $until_refresh = 0,
-  $max_age = 0,
+  $driver                            = $facts['os_service_default'],
+  $instances                         = $facts['os_service_default'],
+  $cores                             = $facts['os_service_default'],
+  $ram                               = $facts['os_service_default'],
+  $metadata_items                    = $facts['os_service_default'],
+  $injected_files                    = $facts['os_service_default'],
+  $injected_file_content_bytes       = $facts['os_service_default'],
+  $injected_file_path_length         = $facts['os_service_default'],
+  $key_pairs                         = $facts['os_service_default'],
+  $server_groups                     = $facts['os_service_default'],
+  $server_group_members              = $facts['os_service_default'],
+  $recheck_quota                     = $facts['os_service_default'],
+  $count_usage_from_placement        = $facts['os_service_default'],
 ) {
-  include ::nova::deps
 
+  include nova::deps
 
   nova_config {
-    'DEFAULT/quota_instances':                   value => $quota_instances;
-    'DEFAULT/quota_cores':                       value => $quota_cores;
-    'DEFAULT/quota_ram':                         value => $quota_ram;
-    'DEFAULT/quota_floating_ips':                value => $quota_floating_ips;
-    'DEFAULT/quota_fixed_ips':                   value => $quota_fixed_ips;
-    'DEFAULT/quota_metadata_items':              value => $quota_metadata_items;
-    'DEFAULT/quota_injected_files':              value => $quota_injected_files;
-    'DEFAULT/quota_injected_file_content_bytes': value => $quota_injected_file_content_bytes;
-    'DEFAULT/quota_injected_file_path_length':   value => $quota_injected_file_path_length;
-    'DEFAULT/quota_security_groups':             value => $quota_security_groups;
-    'DEFAULT/quota_security_group_rules':        value => $quota_security_group_rules;
-    'DEFAULT/quota_key_pairs':                   value => $quota_key_pairs;
-    'DEFAULT/quota_server_groups':               value => $quota_server_groups;
-    'DEFAULT/quota_server_group_members':        value => $quota_server_group_members;
-    'DEFAULT/reservation_expire':                value => $reservation_expire;
-    'DEFAULT/until_refresh':                     value => $until_refresh;
-    'DEFAULT/max_age':                           value => $max_age;
+    'quota/driver':                      value => $driver;
+    'quota/instances':                   value => $instances;
+    'quota/cores':                       value => $cores;
+    'quota/ram':                         value => $ram;
+    'quota/metadata_items':              value => $metadata_items;
+    'quota/injected_files':              value => $injected_files;
+    'quota/injected_file_content_bytes': value => $injected_file_content_bytes;
+    'quota/injected_file_path_length':   value => $injected_file_path_length;
+    'quota/key_pairs':                   value => $key_pairs;
+    'quota/server_groups':               value => $server_groups;
+    'quota/server_group_members':        value => $server_group_members;
+    'quota/recheck_quota':               value => $recheck_quota;
+    'quota/count_usage_from_placement':  value => $count_usage_from_placement;
   }
-
 }

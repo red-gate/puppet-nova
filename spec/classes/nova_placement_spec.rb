@@ -6,10 +6,10 @@ describe 'nova::placement' do
     { :auth_type           => 'password',
       :project_name        => 'services',
       :project_domain_name => 'Default',
-      :os_region_name      => 'RegionOne',
+      :region_name         => 'RegionOne',
       :username            => 'placement',
       :user_domain_name    => 'Default',
-      :auth_url            => 'http://127.0.0.1:35357/v3',
+      :auth_url            => 'http://127.0.0.1:5000/v3',
     }
   end
 
@@ -25,8 +25,9 @@ describe 'nova::placement' do
         is_expected.to contain_nova_config('placement/auth_type').with_value(default_params[:auth_type])
         is_expected.to contain_nova_config('placement/project_name').with_value(default_params[:project_name])
         is_expected.to contain_nova_config('placement/project_domain_name').with_value(default_params[:project_domain_name])
-        is_expected.to contain_nova_config('placement/os_region_name').with_value(default_params[:os_region_name])
-        is_expected.to contain_nova_config('placement/os_interface').with_value('<SERVICE DEFAULT>')
+        is_expected.to contain_nova_config('placement/system_scope').with_value('<SERVICE DEFAULT>')
+        is_expected.to contain_nova_config('placement/region_name').with_value(default_params[:region_name])
+        is_expected.to contain_nova_config('placement/valid_interfaces').with_value('<SERVICE DEFAULT>')
         is_expected.to contain_nova_config('placement/username').with_value(default_params[:username])
         is_expected.to contain_nova_config('placement/user_domain_name').with_value(default_params[:user_domain_name])
         is_expected.to contain_nova_config('placement/auth_url').with_value(default_params[:auth_url])
@@ -39,11 +40,11 @@ describe 'nova::placement' do
           :auth_type           => 'password',
           :project_name        => 'service',
           :project_domain_name => 'default',
-          :os_region_name      => 'RegionTwo',
-          :os_interface        => 'internal',
+          :region_name         => 'RegionTwo',
+          :valid_interfaces    => 'internal,public',
           :username            => 'placement2',
           :user_domain_name    => 'default',
-          :auth_url            => 'https://127.0.0.1:35357/v3',
+          :auth_url            => 'https://127.0.0.1:5000/v3',
         )
       end
 
@@ -52,14 +53,40 @@ describe 'nova::placement' do
         is_expected.to contain_nova_config('placement/auth_type').with_value(params[:auth_type])
         is_expected.to contain_nova_config('placement/project_name').with_value(params[:project_name])
         is_expected.to contain_nova_config('placement/project_domain_name').with_value(params[:project_domain_name])
-        is_expected.to contain_nova_config('placement/os_region_name').with_value(params[:os_region_name])
-        is_expected.to contain_nova_config('placement/os_interface').with_value(params[:os_interface])
+        is_expected.to contain_nova_config('placement/system_scope').with_value('<SERVICE DEFAULT>')
+        is_expected.to contain_nova_config('placement/region_name').with_value(params[:region_name])
+        is_expected.to contain_nova_config('placement/valid_interfaces').with_value(params[:valid_interfaces])
         is_expected.to contain_nova_config('placement/username').with_value(params[:username])
         is_expected.to contain_nova_config('placement/user_domain_name').with_value(params[:user_domain_name])
         is_expected.to contain_nova_config('placement/auth_url').with_value(params[:auth_url])
       end
     end
 
+    context 'when valid_interfaces is an array' do
+      before do
+        params.merge!(
+          :valid_interfaces => ['internal', 'public']
+        )
+      end
+
+      it 'configures the valid_interfaces parameter with a comma-separated string' do
+        is_expected.to contain_nova_config('placement/valid_interfaces').with_value('internal,public')
+      end
+    end
+
+    context 'when system_scope is set' do
+      before do
+        params.merge!(
+          :system_scope => 'all'
+        )
+      end
+
+      it 'configures system-scoped credential' do
+        is_expected.to contain_nova_config('placement/project_name').with_value('<SERVICE DEFAULT>')
+        is_expected.to contain_nova_config('placement/project_domain_name').with_value('<SERVICE DEFAULT>')
+        is_expected.to contain_nova_config('placement/system_scope').with_value(params[:system_scope])
+      end
+    end
   end
 
   on_supported_os({
@@ -69,7 +96,6 @@ describe 'nova::placement' do
       let (:facts) do
         facts.merge!(OSDefaults.get_facts())
       end
-
       it_behaves_like 'nova::placement'
     end
   end

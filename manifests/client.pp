@@ -11,11 +11,16 @@
 class nova::client(
   $ensure = 'present'
 ) {
-  include ::nova::deps
+  include nova::deps
+  include nova::params
+
+  warning("The nova::client class has been deprecated and will be removed \
+in a future release.")
 
   package { 'python-novaclient':
     ensure => $ensure,
-    tag    => ['openstack', 'nova-support-package'],
+    name   => $::nova::params::client_package,
+    tag    => 'openstack',
   }
 
 }

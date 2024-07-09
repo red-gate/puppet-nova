@@ -23,6 +23,11 @@
 #    Name for the new aggregate
 #    Required
 #
+#  [*filter_hosts*]
+#    A boolean-y value to toggle whether only hosts known to be active by
+#    openstack should be aggregated. i.e. "true" or "false"
+#    Optional, defaults to "false"
+#
 #  [*availability_zone*]
 #    The availability zone. ie "zone1"
 #    Optional
@@ -44,8 +49,9 @@ Puppet::Type.newtype(:nova_aggregate) do
 
   ensurable
 
-  autorequire(:nova_config) do
-    ['auth_uri', 'project_name', 'username', 'password']
+  # Require the nova-api service to be running
+  autorequire(:anchor) do
+    ['nova::service::end']
   end
 
   newparam(:name, :namevar => true) do
@@ -58,6 +64,12 @@ Puppet::Type.newtype(:nova_aggregate) do
         raise ArgumentError, "#{value} is not a valid name"
       end
     end
+  end
+
+  newparam(:filter_hosts) do
+    desc 'Toggle to filter given hosts so that only known nova-compute service hosts are added to the aggregate'
+    defaultto :false
+    newvalues(:true, :false)
   end
 
   newproperty(:id) do
@@ -94,9 +106,12 @@ Puppet::Type.newtype(:nova_aggregate) do
     validate do |value|
       if value.is_a?(Hash)
         return true
-      end
-      value.split(",").each do |kv|
-        raise ArgumentError, "Key/value pairs must be separated by an =" unless value.include?("=")
+      elsif value.is_a?(String)
+        value.split(",").each do |kv|
+          raise ArgumentError, "Key/value pairs must be separated by an =" unless value.include?("=")
+        end
+      else
+        raise ArgumentError, "Invalid metadata #{value}. Requires a String or a Hash, not a #{value.class}"
       end
     end
   end
@@ -107,8 +122,10 @@ Puppet::Type.newtype(:nova_aggregate) do
     munge do |value|
       if value.is_a?(Array)
         return value
-      else
+      elsif value.is_a?(String)
         return value.split(",").map{|el| el.strip()}.sort
+      else
+        raise ArgumentError, "Invalid hosts #{value}. Requires a String or an Array, not a #{value.class}"
       end
     end
   end

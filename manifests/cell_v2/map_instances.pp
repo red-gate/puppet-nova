@@ -25,7 +25,8 @@ class nova::cell_v2::map_instances (
   $extra_params = '',
 ) {
 
-  include ::nova::deps
+  include nova::deps
+  include nova::params
 
   if (!$cell_uuid and !$cell_name) {
     fail('Either cell_uuid or cell_name must be provided')
@@ -42,6 +43,7 @@ class nova::cell_v2::map_instances (
   exec { 'nova-cell_v2-map_instances':
     path        => ['/bin', '/usr/bin'],
     command     => "nova-manage ${extra_params} cell_v2 map_instances --cell_uuid=${cell_uuid_real}",
+    user        => $::nova::params::user,
     refreshonly => true,
   }
 }

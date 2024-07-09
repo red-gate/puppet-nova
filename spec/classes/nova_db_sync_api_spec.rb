@@ -7,14 +7,15 @@ describe 'nova::db::sync_api' do
       it {
         is_expected.to contain_exec('nova-db-sync-api').with(
           :command     => '/usr/bin/nova-manage  api_db sync',
+          :user        => 'nova',
           :refreshonly => 'true',
           :timeout     => 300,
           :logoutput   => 'on_failure',
           :subscribe   => ['Anchor[nova::install::end]',
                            'Anchor[nova::config::end]',
-                           'Anchor[nova::db::end]',
                            'Anchor[nova::dbsync_api::begin]'],
           :notify      => 'Anchor[nova::dbsync_api::end]',
+          :tag         => 'openstack-db',
         )
       }
       it { is_expected.to_not contain_class('nova::cell_v2::simple_setup') }
@@ -31,14 +32,15 @@ describe 'nova::db::sync_api' do
       it {
         is_expected.to contain_exec('nova-db-sync-api').with(
           :command     => '/usr/bin/nova-manage --config-file /etc/nova/nova.conf api_db sync',
+          :user        => 'nova',
           :refreshonly => 'true',
           :timeout     => 300,
           :logoutput   => 'on_failure',
           :subscribe   => ['Anchor[nova::install::end]',
                            'Anchor[nova::config::end]',
-                           'Anchor[nova::db::end]',
                            'Anchor[nova::dbsync_api::begin]'],
           :notify      => 'Anchor[nova::dbsync_api::end]',
+          :tag         => 'openstack-db',
         )
       }
       it { is_expected.to_not contain_class('nova::cell_v2::simple_setup') }
@@ -54,14 +56,15 @@ describe 'nova::db::sync_api' do
       it {
         is_expected.to contain_exec('nova-db-sync-api').with(
           :command     => '/usr/bin/nova-manage  api_db sync',
+          :user        => 'nova',
           :refreshonly => 'true',
           :timeout     => 750,
           :logoutput   => 'on_failure',
           :subscribe   => ['Anchor[nova::install::end]',
                            'Anchor[nova::config::end]',
-                           'Anchor[nova::db::end]',
                            'Anchor[nova::dbsync_api::begin]'],
           :notify      => 'Anchor[nova::dbsync_api::end]',
+          :tag         => 'openstack-db',
         )
       }
     end
@@ -73,9 +76,7 @@ describe 'nova::db::sync_api' do
   }).each do |os,facts|
     context "on #{os}" do
       let (:facts) do
-        facts.merge(OSDefaults.get_facts({
-          :os_workers     => 8,
-        }))
+        facts.merge(OSDefaults.get_facts())
       end
 
       it_configures 'nova-dbsync-api'

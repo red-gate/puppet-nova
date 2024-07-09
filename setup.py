@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # Copyright (c) 2013 Hewlett-Packard Development Company, L.P.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,9 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# THIS FILE IS MANAGED BY THE GLOBAL REQUIREMENTS REPO - DO NOT EDIT
 import setuptools
 
 setuptools.setup(
-    setup_requires=['pbr'],
+    setup_requires=['pbr>=2.0.0'],
+    py_modules=[],
     pbr=True)

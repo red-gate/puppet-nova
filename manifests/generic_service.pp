@@ -33,13 +33,13 @@
 define nova::generic_service(
   $package_name,
   $service_name,
-  $enabled        = true,
-  $manage_service = true,
-  $ensure_package = 'present'
+  Boolean $enabled        = true,
+  Boolean $manage_service = true,
+  $ensure_package         = 'present'
 ) {
 
-  include ::nova::deps
-  include ::nova::params
+  include nova::deps
+  include nova::params
 
   $nova_title = "nova-${name}"
 
@@ -62,14 +62,14 @@ define nova::generic_service(
       } else {
         $service_ensure = 'stopped'
       }
-    }
 
-    service { $nova_title:
-      ensure    => $service_ensure,
-      name      => $service_name,
-      enable    => $enabled,
-      hasstatus => true,
-      tag       => 'nova-service',
+      service { $nova_title:
+        ensure    => $service_ensure,
+        name      => $service_name,
+        enable    => $enabled,
+        hasstatus => true,
+        tag       => 'nova-service',
+      }
     }
   }
 }

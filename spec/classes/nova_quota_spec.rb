@@ -1,83 +1,77 @@
 require 'spec_helper'
 
 describe 'nova::quota' do
-
   let :params do
     {}
   end
 
   let :default_params do
-    { :quota_instances => 10,
-      :quota_cores => 20,
-      :quota_ram => 51200,
-      :quota_floating_ips => 10,
-      :quota_fixed_ips => -1,
-      :quota_metadata_items => 128,
-      :quota_injected_files => 5,
-      :quota_injected_file_content_bytes => 10240,
-      :quota_injected_file_path_length => 255,
-      :quota_security_groups => 10,
-      :quota_security_group_rules => 20,
-      :quota_key_pairs => 100,
-      :quota_server_groups => 10,
-      :quota_server_group_members => 10,
-      :reservation_expire => 86400,
-      :until_refresh => 0,
-      :max_age => 0 }
+    {
+      :driver                      => '<SERVICE DEFAULT>',
+      :instances                   => '<SERVICE DEFAULT>',
+      :cores                       => '<SERVICE DEFAULT>',
+      :ram                         => '<SERVICE DEFAULT>',
+      :metadata_items              => '<SERVICE DEFAULT>',
+      :injected_files              => '<SERVICE DEFAULT>',
+      :injected_file_content_bytes => '<SERVICE DEFAULT>',
+      :injected_file_path_length   => '<SERVICE DEFAULT>',
+      :key_pairs                   => '<SERVICE DEFAULT>',
+      :server_groups               => '<SERVICE DEFAULT>',
+      :server_group_members        => '<SERVICE DEFAULT>',
+      :recheck_quota               => '<SERVICE DEFAULT>',
+      :count_usage_from_placement  => '<SERVICE DEFAULT>',
+    }
   end
 
-  shared_examples_for 'nova quota' do
+  shared_examples 'nova::quota config options' do
     let :params_hash do
-      default_params.merge(params)
+      default_params.merge!(params)
     end
 
-    it 'configures quota in nova.conf' do
-      params_hash.each_pair do |config,value|
-        is_expected.to contain_nova_config("DEFAULT/#{config}").with_value( value )
+    it {
+      params_hash.each_pair do |config, value|
+        should contain_nova_config("quota/#{config}").with_value(value)
       end
+    }
+  end
+
+  shared_examples 'nova::quota' do
+    context 'with default parameters' do
+      it_behaves_like 'nova::quota config options'
+    end
+
+    context 'with provided parameters' do
+      before do
+        params.merge!({
+          :driver                      => 'nova.quota.DbQuotaDriver',
+          :instances                   => 20,
+          :cores                       => 40,
+          :ram                         => 102400,
+          :metadata_items              => 256,
+          :injected_files              => 10,
+          :injected_file_content_bytes => 20480,
+          :injected_file_path_length   => 254,
+          :key_pairs                   => 200,
+          :server_groups               => 20,
+          :server_group_members        => 20,
+          :recheck_quota               => true,
+          :count_usage_from_placement  => false,
+        })
+      end
+
+      it_behaves_like 'nova::quota config options'
     end
   end
 
-  context 'with default parameters' do
-    it_configures 'nova quota'
-  end
+  on_supported_os({
+    :supported_os => OSDefaults.get_supported_os
+  }).each do |os,facts|
+    context "on #{os}" do
+      let (:facts) do
+        facts.merge!(OSDefaults.get_facts())
+      end
 
-  context 'with provided parameters' do
-    before do
-      params.merge!({
-        :quota_instances => 20,
-        :quota_cores => 40,
-        :quota_ram => 102400,
-        :quota_floating_ips => 20,
-        :quota_fixed_ips => 512,
-        :quota_metadata_items => 256,
-        :quota_injected_files => 10,
-        :quota_injected_file_content_bytes => 20480,
-        :quota_injected_file_path_length => 254,
-        :quota_security_groups => 20,
-        :quota_security_group_rules => 40,
-        :quota_key_pairs => 200,
-        :quota_server_groups => 20,
-        :quota_server_group_members => 20,
-        :reservation_expire => 6400,
-        :until_refresh => 30,
-        :max_age => 60
-      })
+      it_behaves_like 'nova::quota'
     end
-
-    it_configures 'nova quota'
   end
-
-  it { is_expected.to contain_nova_config('DEFAULT/quota_ram').with_value('51200') }
-
-  describe 'when overriding params' do
-
-    let :params do
-      {:quota_ram => '1'}
-    end
-
-    it { is_expected.to contain_nova_config('DEFAULT/quota_ram').with_value('1') }
-
-  end
-
 end

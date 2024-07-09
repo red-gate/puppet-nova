@@ -43,36 +43,137 @@
 #
 #  [*user*]
 #    (optional) User with access to nova files.
-#    Defaults to 'nova'.
+#    Defaults to $::nova::params::user.
 #
 #  [*destination*]
 #    (optional) Path to file to which rows should be archived
 #    Defaults to '/var/log/nova/nova-rowsflush.log'.
 #
 #  [*until_complete*]
-#    (optional) Adds --until_complete to the archive command
+#    (optional) Adds --until-complete to the archive command
 #    Defaults to false.
 #
+#  [*purge*]
+#    (optional) Adds --purge to the archive command
+#    This option will fully purge shadow table data after
+#    archiving, it adds a --purge flag to archive_deleted_rows
+#    which will automatically do a full db purge when complete.
+#    Defaults to false.
+#
+#  [*age*]
+#    (optional) Adds a retention policy when purging the shadow tables
+#    Defaults to undef.
+#
+#  [*all_cells*]
+#    (optional) Adds --all-cells to the archive command
+#    Defaults to false.
+#
+#  [*task_log*]
+#    (optional) Adds --task-log to the archive command
+#    Defaults to false.
+#
+#  [*sleep*]
+#    (optional) The amount of time in seconds to sleep between batches when
+#    until_complete is used
+#    Defaults to undef.
+#
+#  [*verbose*]
+#    (optional) Adds --verbose to the purge command
+#    If specified, will print information about the archived rows.
+#    Defaults to false.
+#
+#  [*maxdelay*]
+#    (optional) In Seconds. Should be a positive integer.
+#    Induces a random delay before running the cronjob to avoid running
+#    all cron jobs at the same time on all hosts this job is configured.
+#    Defaults to 0.
+#
+#  [*ensure*]
+#    (optional) Ensure cron jobs present or absent
+#    Defaults to present.
+#
 class nova::cron::archive_deleted_rows (
-  $minute      = 1,
-  $hour        = 0,
-  $monthday    = '*',
-  $month       = '*',
-  $weekday     = '*',
-  $max_rows    = '100',
-  $user        = 'nova',
-  $destination = '/var/log/nova/nova-rowsflush.log',
-  $until_complete = false,
-) {
+  $minute                           = 1,
+  $hour                             = 0,
+  $monthday                         = '*',
+  $month                            = '*',
+  $weekday                          = '*',
+  $max_rows                         = '100',
+  $user                             = $::nova::params::user,
+  $destination                      = '/var/log/nova/nova-rowsflush.log',
+  Boolean $until_complete           = false,
+  Boolean $purge                    = false,
+  $age                              = undef,
+  Boolean $all_cells                = false,
+  Boolean $task_log                 = false,
+  $sleep                            = undef,
+  Boolean $verbose                  = false,
+  Integer[0] $maxdelay              = 0,
+  Enum['present', 'absent'] $ensure = 'present',
+) inherits nova::params {
 
-  include ::nova::deps
+  include nova::deps
 
   if $until_complete {
-    $until_complete_real = '--until_complete'
+    $until_complete_real = ' --until-complete'
+  }
+  else {
+    $until_complete_real = ''
   }
 
+  if $purge {
+    $purge_real = ' --purge'
+  }
+  else {
+    $purge_real = ''
+  }
+
+  if $verbose {
+    $verbose_real = ' --verbose'
+  }
+  else {
+    $verbose_real = ''
+  }
+
+  if $all_cells {
+    $all_cells_real = ' --all-cells'
+  }
+  else {
+    $all_cells_real = ''
+  }
+
+  if $task_log {
+    $task_log_real = ' --task-log'
+  }
+  else {
+    $task_log_real = ''
+  }
+
+  if $maxdelay == 0 {
+    $delay_cmd = ''
+  } else {
+    $delay_cmd = "sleep `expr \${RANDOM} \\% ${maxdelay}`; "
+  }
+
+  if $age {
+    $age_real = " --before `date --date=\'today - ${age} days\' +\\%F`"
+  } else {
+    $age_real = ''
+  }
+
+  if $sleep != undef {
+    $sleep_real = " --sleep ${sleep}"
+  } else {
+    $sleep_real = ''
+  }
+
+  $cron_cmd = 'nova-manage db archive_deleted_rows'
+
   cron { 'nova-manage db archive_deleted_rows':
-    command     => "nova-manage db archive_deleted_rows --max_rows ${max_rows} ${until_complete_real} >>${destination} 2>&1",
+    ensure      => $ensure,
+    # lint:ignore:140chars
+    command     => "${delay_cmd}${cron_cmd}${purge_real} --max_rows ${max_rows}${verbose_real}${age_real}${until_complete_real}${all_cells_real}${task_log_real}${sleep_real} >>${destination} 2>&1",
+    # lint:endignore
     environment => 'PATH=/bin:/usr/bin:/usr/sbin SHELL=/bin/sh',
     user        => $user,
     minute      => $minute,

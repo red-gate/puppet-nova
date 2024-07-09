@@ -25,19 +25,19 @@
 #   Defaults to 'present'
 #
 class nova::serialproxy(
-  $enabled              = true,
-  $manage_service       = true,
-  $serialproxy_host     = '0.0.0.0',
-  $serialproxy_port     = '6083',
-  $ensure_package       = 'present'
+  Boolean $enabled        = true,
+  Boolean $manage_service = true,
+  $serialproxy_host       = '0.0.0.0',
+  $serialproxy_port       = '6083',
+  $ensure_package         = 'present'
 ) {
 
-  include ::nova::deps
-  include ::nova::params
+  include nova::deps
+  include nova::params
 
   nova_config {
-    'serial_console/serialproxy_port':    value => $serialproxy_port;
-    'serial_console/serialproxy_host':    value => $serialproxy_host;
+    'serial_console/serialproxy_port': value => $serialproxy_port;
+    'serial_console/serialproxy_host': value => $serialproxy_host;
   }
 
   nova::generic_service { 'serialproxy':

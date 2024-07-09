@@ -3,6 +3,17 @@ Puppet::Type.type(:libvirtd_config).provide(
   :parent => Puppet::Type.type(:ini_setting).provider(:ruby)
 ) do
 
+  def exists?
+    if resource[:value] == ensure_absent_val
+      resource[:ensure] = :absent
+    elsif resource[:quote]
+      unless resource[:value].start_with?('"')
+        resource[:value] = '"' + resource[:value] + '"'
+      end
+    end
+    super
+  end
+
   def section
     ''
   end
@@ -15,13 +26,12 @@ Puppet::Type.type(:libvirtd_config).provide(
     '='
   end
 
-  def self.file_path
-    '/etc/libvirt/libvirtd.conf'
+  def ensure_absent_val
+    resource[:ensure_absent_val]
   end
 
-  # this needs to be removed. This has been replaced with the class method
-  def file_path
-    self.class.file_path
+  def self.file_path
+    '/etc/libvirt/libvirtd.conf'
   end
 
 end

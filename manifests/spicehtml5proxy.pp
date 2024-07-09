@@ -29,23 +29,45 @@
 #   Defaults to 'present'
 #
 class nova::spicehtml5proxy(
-  $enabled        = true,
-  $manage_service = true,
-  $host           = '0.0.0.0',
-  $port           = '6082',
-  $ensure_package = 'present'
+  Boolean $enabled        = true,
+  Boolean $manage_service = true,
+  $host                   = '0.0.0.0',
+  $port                   = '6082',
+  $ensure_package         = 'present'
 ) {
 
-  include ::nova::deps
-  include ::nova::params
+  include nova::deps
+  include nova::params
 
+  # Nodes running spicehtml5proxy do *not* need (and in fact, don't care)
+  # about [spice]/enable to be set. This setting is for compute nodes,
+  # where we must select VNC or SPICE so that it can be passed on to
+  # libvirt which passes it as parameter when starting VMs with KVM.
+  # Therefore, this setting is set within compute.pp only.
   nova_config {
-    'spice/enabled':         value => $enabled;
     'spice/agent_enabled':   value => $enabled;
     'spice/html5proxy_host': value => $host;
     'spice/html5proxy_port': value => $port;
   }
 
+  # The Debian package needs some scheduling:
+  # 1/ Install the packagin
+  # 2/ Fix /etc/default/nova-consoleproxy
+  # 3/ Start the service
+  # Other OS don't need this scheduling and can use
+  # the standard nova::generic_service
+  if $facts['os']['name'] == 'Debian' {
+    if $enabled {
+      file_line { '/etc/default/nova-consoleproxy:NOVA_CONSOLE_PROXY_TYPE':
+        path    => '/etc/default/nova-consoleproxy',
+        match   => '^NOVA_CONSOLE_PROXY_TYPE=(.*)$',
+        line    => 'NOVA_CONSOLE_PROXY_TYPE=spicehtml5',
+        tag     => 'nova-consoleproxy',
+        require => Anchor['nova::config::begin'],
+        notify  => Anchor['nova::config::end'],
+      }
+    }
+  }
   nova::generic_service { 'spicehtml5proxy':
     enabled        => $enabled,
     manage_service => $manage_service,
@@ -54,4 +76,3 @@ class nova::spicehtml5proxy(
     ensure_package => $ensure_package,
   }
 }
-

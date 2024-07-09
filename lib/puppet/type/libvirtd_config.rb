@@ -10,7 +10,13 @@ Puppet::Type.newtype(:libvirtd_config) do
   newproperty(:value) do
     desc 'The value of the setting to be defined.'
     munge do |value|
-      value = value.to_s.strip
+      if [true, false].include?(value)
+        # NOTE(tkajinam): libvirt config file does not accept boolean values
+        #                 and the value should be converted to 1/0.
+        value = value ? '1' : '0'
+      else
+        value = value.to_s.strip
+      end
       value
     end
 
@@ -39,8 +45,19 @@ Puppet::Type.newtype(:libvirtd_config) do
     defaultto false
   end
 
-  autorequire(:package) do
-    'libvirt-daemon'
+  newparam(:quote, :boolean => true) do
+    desc 'Whether to quote the value. Defauls to `false`.'
+    newvalues(:true, :false)
+    defaultto false
+  end
+
+  newparam(:ensure_absent_val) do
+    desc 'A value that is specified as the value property will behave as if ensure => absent was specified'
+    defaultto('<SERVICE DEFAULT>')
+  end
+
+  autorequire(:anchor) do
+    ['nova::install::end']
   end
 
 end

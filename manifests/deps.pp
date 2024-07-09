@@ -18,14 +18,27 @@ class nova::deps {
   ~> anchor { 'nova::config::end': }
   -> anchor { 'nova::db::begin': }
   -> anchor { 'nova::db::end': }
+  ~> anchor { 'nova::dbsync::begin': }
+  -> anchor { 'nova::dbsync::end': }
   ~> anchor { 'nova::service::begin': }
   ~> Service<| tag == 'nova-service' |>
   ~> anchor { 'nova::service::end': }
 
-  # paste-api.ini config should occur in the config block also.
   Anchor['nova::config::begin']
-  -> Nova_paste_api_ini<||>
+  -> Nova_api_paste_ini<||>
+  -> Anchor['nova::config::end']
+
+  Anchor['nova::config::begin']
+  -> Nova_rootwrap_config<||>
   ~> Anchor['nova::config::end']
+
+  Anchor['nova::config::begin']
+  -> Nova_api_uwsgi_config<||>
+  -> Anchor['nova::config::end']
+
+  Anchor['nova::config::begin']
+  -> Nova_api_metadata_uwsgi_config<||>
+  -> Anchor['nova::config::end']
 
   # Support packages need to be installed in the install phase, but we don't
   # put them in the chain above because we don't want any false dependencies
@@ -38,81 +51,50 @@ class nova::deps {
   -> Package<| tag == 'nova-support-package'|>
   -> Anchor['nova::install::end']
 
-  # TODO(aschultz): check if we can remove these as I think they are no longer
-  # valid since nova_cells is replaced by cell_v2 and the others are part of
-  # nova network
-  # The following resources are managed by calling 'nova manage' and so the
-  # database must be provisioned before they can be applied.
-  Anchor['nova::dbsync_api::end']
-  -> Nova_cells<||>
-  Anchor['nova::dbsync::end']
-  -> Nova_cells<||>
-  Anchor['nova::dbsync_api::end']
-  -> Nova_floating<||>
-  Anchor['nova::dbsync::end']
-  -> Nova_floating<||>
-  Anchor['nova::dbsync_api::end']
-  -> Nova_network<||>
-  Anchor['nova::dbsync::end']
-  -> Nova_network<||>
+  # Start libvirt services during the service phase
+  Anchor['nova::service::begin']
+  -> Exec<| tag == 'libvirt-service'|>
+  -> Service<| tag == 'libvirt-service'|>
+  -> Anchor['nova::service::end']
 
-  # all db settings should be applied and all packages should be installed
-  # before dbsync starts
-  Oslo::Db<||> -> Anchor['nova::dbsync::begin']
+  # We need openstackclient before marking service end so that nova
+  # will have clients available to create resources. This tag handles the
+  # openstackclient but indirectly since the client is not available in
+  # all catalogs that don't need the client class (like many spec tests)
+  Package<| tag == 'openstackclient'|>
+  -> Anchor['nova::service::end']
+
+  # Manage libvirt configurations during the config phase
+  Anchor['nova::config::begin'] -> Libvirtd_config<||> -> Anchor['nova::config::end']
+  Anchor['nova::config::begin'] -> Virtlogd_config<||> -> Anchor['nova::config::end']
+  Anchor['nova::config::begin'] -> Virtlockd_config<||> -> Anchor['nova::config::end']
+  Anchor['nova::config::begin'] -> Virtnodedevd_config<||> -> Anchor['nova::config::end']
+  Anchor['nova::config::begin'] -> Virtproxyd_config<||> -> Anchor['nova::config::end']
+  Anchor['nova::config::begin'] -> Virtqemud_config<||> -> Anchor['nova::config::end']
+  Anchor['nova::config::begin'] -> Virtsecretd_config<||> -> Anchor['nova::config::end']
+  Anchor['nova::config::begin'] -> Virtstoraged_config<||> -> Anchor['nova::config::end']
+  Anchor['nova::config::begin'] -> Qemu_config<||> -> Anchor['nova::config::end']
 
   # Installation or config changes will always restart services.
   Anchor['nova::install::end'] ~> Anchor['nova::service::begin']
   Anchor['nova::config::end']  ~> Anchor['nova::service::begin']
 
-  # This is here for backwards compatibility for any external users of the
-  # nova-start anchor.  This should be considered deprecated and removed in the
-  # N cycle
-  anchor { 'nova-start':
-    require => Anchor['nova::install::end'],
-    before  => Anchor['nova::config::begin'],
-  }
+  # Nova requres separate sync operation for API db, and it should be executed
+  # before non-API db sync.
+  Anchor['nova::db::end']
+  ~> anchor { 'nova::dbsync_api::begin': }
+  -> anchor { 'nova::dbsync_api::end': }
+  ~> Anchor['nova::dbsync::begin']
 
-  #############################################################################
-  # NOTE(aschultz): these are defined here because this syntax allows us
-  # to override the subscribe/notify order using the spaceship operator.
-  # The ->/~> does not seem to be able to be updated after the fact. Since
-  # we have to flip cell v2 ordering for the N->O upgrade process, we need
-  # to not use the chaining arrows. ugh.
-  #############################################################################
-  # Wedge this in after the db creation and before the services
-  anchor { 'nova::dbsync_api::begin':
-    subscribe => Anchor['nova::db::end']
-  }
-  -> anchor { 'nova::dbsync_api::end':
-    notify => Anchor['nova::service::begin'],
-  }
+  Anchor['nova::dbsync_api::end'] ~> Anchor['nova::service::begin']
 
-  # Wedge this after db creation and api sync but before the services
-  anchor { 'nova::dbsync::begin':
-    subscribe => [
-      Anchor['nova::db::end'],
-      Anchor['nova::dbsync_api::end']
-    ]
-  }
-  -> anchor { 'nova::dbsync::end':
-    notify => Anchor['nova::service::begin']
-  }
+  Anchor['nova::dbsync_api::end']
+  ~> anchor { 'nova::cell_v2::begin': }
+  ~> anchor { 'nova::cell_v2::end': }
+  ~> Anchor['nova::dbsync::begin']
 
-  # Wedge cell_v2 put this between api sync and db sync by default but can
-  # be overridden using the spaceship operator to move it around when needed
-  anchor { 'nova::cell_v2::begin':
-    subscribe => Anchor['nova::dbsync_api::end']
-  }
-  -> Nova::Cell_v2::Cell<||>
-  ~> anchor { 'nova::cell_v2::end':
-    notify => Anchor['nova::dbsync::begin']
-  }
-
-  # Wedge online data migrations after db/api_sync and before service
-  anchor { 'nova::db_online_data_migrations::begin':
-    subscribe => Anchor['nova::dbsync_api::end']
-  }
-  -> anchor { 'nova::db_online_data_migrations::end':
-    notify => Anchor['nova::service::begin']
-  }
+  Anchor['nova::dbsync_api::end']
+  ~> anchor { 'nova::db_online_data_migrations::begin': }
+  -> anchor { 'nova::db_online_data_migrations::end': }
+  ~> Anchor['nova::service::begin']
 }

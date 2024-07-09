@@ -16,12 +16,14 @@ nova
 4. [Implementation - An under-the-hood peek at what the module is doing](#implementation)
 5. [Limitations - OS compatibility, etc.](#limitations)
 6. [Development - Guide for contributing to the module](#development)
-7. [Contributors - Those with commits](#contributors)
+7. [Release Notes - Release notes for the project](#release-notes)
+8. [Contributors - Those with commits](#contributors)
+9. [Repository - The project source code repository](#repository)
 
 Overview
 --------
 
-The nova module is a part of [OpenStack](https://github.com/openstack), an effort by the OpenStack infrastructure team to provide continuous integration testing and code review for OpenStack and OpenStack community projects as part of the core software.  The module its self is used to flexibly configure and manage the compute service for OpenStack.
+The nova module is a part of [OpenStack](https://opendev.org/openstack), an effort by the OpenStack infrastructure team to provide continuous integration testing and code review for OpenStack and OpenStack community projects as part of the core software.  The module its self is used to flexibly configure and manage the compute service for OpenStack.
 
 Module Description
 ------------------
@@ -35,7 +37,7 @@ Setup
 
 **What the nova module affects:**
 
-* [Nova](https://wiki.openstack.org/wiki/Nova), the compute service for OpenStack.
+* [Nova](https://docs.openstack.org/nova/latest/), the compute service for OpenStack.
 
 ### Installing nova
 
@@ -47,12 +49,9 @@ To utilize the nova module's functionality you will need to declare multiple res
 
 ```puppet
 class { 'nova':
-  database_connection => 'mysql://nova:a_big_secret@127.0.0.1/nova?charset=utf8',
-  rabbit_userid       => 'nova',
-  rabbit_password     => 'an_even_bigger_secret',
-  image_service       => 'nova.image.glance.GlanceImageService',
-  glance_api_servers  => 'localhost:9292',
-  rabbit_host         => '127.0.0.1',
+  database_connection     => 'mysql://nova:a_big_secret@127.0.0.1/nova?charset=utf8',
+  api_database_connection => 'mysql://nova:a_big_secret@127.0.0.1/nova_api?charset=utf8',
+  default_transport_url   => 'rabbit://nova:an_even_bigger_secret@127.0.0.1:5672/nova',
 }
 
 class { 'nova::compute':
@@ -79,12 +78,12 @@ nova is a combination of Puppet manifest and ruby code to delivery configuration
 The `nova_config` provider is a children of the ini_setting provider. It allows one to write an entry in the `/etc/nova/nova.conf` file.
 
 ```puppet
-nova_config { 'DEFAULT/image_service' :
-  value => nova.image.glance.GlanceImageService,
+nova_config { 'DEFAULT/my_ip' :
+  value => '192.0.2.1',
 }
 ```
 
-This will write `image_service=nova.image.glance.GlanceImageService` in the `[DEFAULT]` section.
+This will write 'my_ip=192.0.2.1' in the `[DEFAULT]` section.
 
 ##### name
 
@@ -105,7 +104,7 @@ If value is equal to ensure_absent_val then the resource will behave as if `ensu
 Limitations
 -----------
 
-* Supports libvirt, xenserver and vmware compute drivers.
+* Supports libvirt and vmware compute drivers.
 * Tested on EL and Debian derivatives.
 
 Development
@@ -115,23 +114,17 @@ Developer documentation for the entire puppet-openstack project.
 
 * https://docs.openstack.org/puppet-openstack-guide/latest/
 
-Beaker-Rspec
-------------
+Release Notes
+-------------
 
-This module has beaker-rspec tests
-
-To run the tests on the default vagrant node:
-
-```shell
-bundle install
-bundle exec rspec spec/acceptance
-```
-
-For more information on writing and running beaker-rspec tests visit the documentation:
-
-* https://github.com/puppetlabs/beaker-rspec/blob/master/README.md
+* https://docs.openstack.org/releasenotes/puppet-nova
 
 Contributors
 ------------
 
 * https://github.com/openstack/puppet-nova/graphs/contributors
+
+Repository
+----------
+
+* https://opendev.org/openstack/puppet-nova

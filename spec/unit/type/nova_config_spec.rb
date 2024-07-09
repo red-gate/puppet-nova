@@ -1,5 +1,6 @@
 require 'puppet'
 require 'puppet/type/nova_config'
+
 describe 'Puppet::Type.type(:nova_config)' do
   before :each do
     @nova_config = Puppet::Type.type(:nova_config).new(:name => 'DEFAULT/foo', :value => 'bar')
@@ -32,7 +33,7 @@ describe 'Puppet::Type.type(:nova_config)' do
     expect(@nova_config[:value]).to eq(['bar'])
   end
 
-  it 'should not accept a value with whitespace' do
+  it 'should accept a value with whitespace' do
     @nova_config[:value] = 'b ar'
     expect(@nova_config[:value]).to eq(['b ar'])
   end
@@ -52,13 +53,12 @@ describe 'Puppet::Type.type(:nova_config)' do
 
   it 'should autorequire the package that install the file' do
     catalog = Puppet::Resource::Catalog.new
-    package = Puppet::Type.type(:package).new(:name => 'nova-common')
-    catalog.add_resource package, @nova_config
+    anchor = Puppet::Type.type(:anchor).new(:name => 'nova::install::end')
+    catalog.add_resource anchor, @nova_config
     dependency = @nova_config.autorequire
     expect(dependency.size).to eq(1)
     expect(dependency[0].target).to eq(@nova_config)
-    expect(dependency[0].source).to eq(package)
+    expect(dependency[0].source).to eq(anchor)
   end
-
 
 end

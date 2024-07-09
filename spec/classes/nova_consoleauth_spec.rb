@@ -2,8 +2,27 @@ require 'spec_helper'
 
 describe 'nova::consoleauth' do
 
-  let :pre_condition do
-    'include nova'
+  shared_examples 'nova::consoleauth' do
+    context 'with defaults' do
+      it 'configures consoleauth in nova.conf' do
+        should contain_nova_config('consoleauth/token_ttl').with_value('<SERVICE DEFAULT>')
+        should contain_nova_config('consoleauth/enforce_session_timeout').with_value('<SERVICE DEFAULT>')
+      end
+    end
+
+    context 'with parameters' do
+      let :params do
+        {
+          :token_ttl               => 600,
+          :enforce_session_timeout => false,
+        }
+      end
+
+      it 'configures consoleauth in nova.conf' do
+        should contain_nova_config('consoleauth/token_ttl').with_value(600)
+        should contain_nova_config('consoleauth/enforce_session_timeout').with_value(false)
+      end
+    end
   end
 
   on_supported_os({
@@ -11,24 +30,10 @@ describe 'nova::consoleauth' do
   }).each do |os,facts|
     context "on #{os}" do
       let (:facts) do
-        facts.merge!(OSDefaults.get_facts())
+        facts.merge(OSDefaults.get_facts())
       end
 
-      let (:platform_params) do
-        case facts[:osfamily]
-        when 'Debian'
-          it_behaves_like 'generic nova service', {
-            :name         => 'nova-consoleauth',
-            :package_name => 'nova-consoleauth',
-            :service_name => 'nova-consoleauth' }
-        when 'RedHat'
-          it_behaves_like 'generic nova service', {
-            :name         => 'nova-consoleauth',
-            :package_name => 'openstack-nova-console',
-            :service_name => 'openstack-nova-consoleauth' }
-        end
-      end
+      it_behaves_like 'nova::consoleauth'
     end
   end
-
 end

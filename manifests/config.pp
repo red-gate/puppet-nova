@@ -2,41 +2,46 @@
 #
 # This class is used to manage arbitrary Nova configurations.
 #
-# === Parameters
-#
-# [*nova_config*]
+# example xxx_config
 #   (optional) Allow configuration of arbitrary Nova configurations.
-#   The value is an hash of nova_config resources. Example:
+#   The value is a hash of xxx_config resources. Example:
+#   server_config =>
 #   { 'DEFAULT/foo' => { value => 'fooValue'},
 #     'DEFAULT/bar' => { value => 'barValue'}
 #   }
+#
+#   NOTE: { 'DEFAULT/foo': value => 'fooValue'; 'DEFAULT/bar': value => 'barValue'} is invalid.
+#
 #   In yaml format, Example:
-#   nova_config:
+#   server_config:
 #     DEFAULT/foo:
 #       value: fooValue
 #     DEFAULT/bar:
 #       value: barValue
 #
+# === Parameters
+#
+# [*nova_config*]
+#   (optional) Allow configuration of nova.conf configurations.
+#
+# [*nova_api_paste_ini*]
+#   (optional) Allow configuration of api-paste.ini configurations.
+#
+# [*nova_rootwrap_config*]
+#   (optional) Allow configuration of rootwrap.conf configurations.
+#
 #   NOTE: The configuration MUST NOT be already handled by this module
 #   or Puppet catalog compilation will fail with duplicate resources.
 #
-# [*nova_paste_api_ini*]
-#   (optional) Allow configuration of arbitrary Nova paste api configurations.
-#   The value is an hash of nova_paste_api_ini resources. Example:
-#   { 'DEFAULT/foo' => { value => 'fooValue'},
-#     'DEFAULT/bar' => { value => 'barValue'}
-#   }
-#
 class nova::config (
-  $nova_config        = {},
-  $nova_paste_api_ini = {},
+  Hash $nova_config          = {},
+  Hash $nova_api_paste_ini   = {},
+  Hash $nova_rootwrap_config = {},
 ) {
 
-  include ::nova::deps
-
-  validate_hash($nova_config)
-  validate_hash($nova_paste_api_ini)
+  include nova::deps
 
   create_resources('nova_config', $nova_config)
-  create_resources('nova_paste_api_ini', $nova_paste_api_ini)
+  create_resources('nova_api_paste_ini', $nova_api_paste_ini)
+  create_resources('nova_rootwrap_config', $nova_rootwrap_config)
 }

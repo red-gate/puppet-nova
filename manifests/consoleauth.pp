@@ -1,39 +1,26 @@
 # == Class: nova::consoleauth
 #
-# Installs and configures consoleauth service
-#
-# The consoleauth service is required for vncproxy auth
-# for Horizon
+# Configure the consoleauth options
 #
 # === Parameters
 #
-# [*enabled*]
-#   (optional) Whether the nova consoleauth service will be run
-#   Defaults to true
+# [*token_ttl*]
+#  (Optional) The lifetime of a console auth token (in seconds).
+#  Defaults to $facts['os_service_default'].
 #
-# [*manage_service*]
-#   (optional) Whether to start/stop the service
-#   Defaults to true
+# [*enforce_session_timeout*]
+#  (Optional) Enable ot disable enforce session timeout for VM console.
+#  Defaults to $facts['os_service_default'].
 #
-# [*ensure_package*]
-#   (optional) Whether the nova consoleauth package will be installed
-#   Defaults to 'present'
-#
-class nova::consoleauth(
-  $enabled        = true,
-  $manage_service = true,
-  $ensure_package = 'present'
+class nova::consoleauth (
+  $token_ttl               = $facts['os_service_default'],
+  $enforce_session_timeout = $facts['os_service_default'],
 ) {
 
-  include ::nova::deps
-  include ::nova::params
+  include nova::deps
 
-  nova::generic_service { 'consoleauth':
-    enabled        => $enabled,
-    manage_service => $manage_service,
-    package_name   => $::nova::params::consoleauth_package_name,
-    service_name   => $::nova::params::consoleauth_service_name,
-    ensure_package => $ensure_package,
+  nova_config {
+    'consoleauth/token_ttl':               value => $token_ttl;
+    'consoleauth/enforce_session_timeout': value => $enforce_session_timeout;
   }
-
 }

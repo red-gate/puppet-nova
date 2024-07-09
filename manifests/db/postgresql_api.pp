@@ -32,14 +32,14 @@ class nova::db::postgresql_api(
   $privileges = 'ALL',
 ) {
 
-  include ::nova::deps
+  include nova::deps
 
   ::openstacklib::db::postgresql { 'nova_api':
-    password_hash => postgresql_password($user, $password),
-    dbname        => $dbname,
-    user          => $user,
-    encoding      => $encoding,
-    privileges    => $privileges,
+    password   => $password,
+    dbname     => $dbname,
+    user       => $user,
+    encoding   => $encoding,
+    privileges => $privileges,
   }
 
   Anchor['nova::db::begin']

@@ -44,9 +44,15 @@
 #    Optional
 #
 #  [*project*]
-#    Set flavor access to project (name or ID).
+#    Set flavor access to project (ID).
 #    If you set this option, take care to set is_public to false.
 #    Optional
+#
+#  [*project_name*]
+#    Set flavor access to project (name).
+#    If you set this option, take care to set is_public to false.
+#    Optional
+#
 require 'puppet'
 
 Puppet::Type.newtype(:nova_flavor) do
@@ -55,13 +61,13 @@ Puppet::Type.newtype(:nova_flavor) do
 
   ensurable
 
-  autorequire(:nova_config) do
-    ['auth_uri', 'project_name', 'username', 'password']
+  # Require the nova-api service to be running
+  autorequire(:anchor) do
+    ['nova::service::end']
   end
 
-  # Require the nova-api service to be running
-  autorequire(:service) do
-    ['nova-api']
+  autorequire(:keystone_tenant) do
+    [self[:project_name]] if (self[:project_name] and self[:project_name] != '')
   end
 
   newparam(:name, :namevar => true) do
@@ -109,10 +115,14 @@ Puppet::Type.newtype(:nova_flavor) do
     newvalues(/(y|Y)es/, /(n|N)o/, /(t|T)rue/, /(f|F)alse/, true, false)
     defaultto(true)
     munge do |v|
-      if v =~ /^(y|Y)es$/
-        :true
-      elsif v =~ /^(n|N)o$/
-        :false
+      if v.is_a?(String)
+        if v =~ /^(y|Y)es$/
+          :true
+        elsif v =~ /^(n|N)o$/
+          :false
+        else
+          v.to_s.downcase.to_sym
+        end
       else
         v.to_s.downcase.to_sym
       end
@@ -120,8 +130,11 @@ Puppet::Type.newtype(:nova_flavor) do
   end
 
   newproperty(:project) do
-    desc 'Set flavor access to project (name or ID).'
-    defaultto('')
+    desc 'Set flavor access to project (ID).'
+  end
+
+  newproperty(:project_name) do
+    desc 'Set flavor access to project (Name).'
   end
 
   newproperty(:properties) do
@@ -136,10 +149,14 @@ Puppet::Type.newtype(:nova_flavor) do
     end
 
     validate do |value|
-      return true if value.is_a? Hash
-
-      value.split(',').each do |property|
-        raise ArgumentError, "Key/value pairs should be separated by an =" unless property.include?('=')
+      if value.is_a?(Hash)
+        return true
+      elsif value.is_a?(String)
+        value.split(',').each do |property|
+          raise ArgumentError, "Key/value pairs should be separated by an =" unless property.include?('=')
+        end
+      else
+        raise ArgumentError, "Invalid properties #{value}. Requires a String or a Hash, not a #{value.class}"
       end
     end
   end
@@ -148,7 +165,13 @@ Puppet::Type.newtype(:nova_flavor) do
     unless self[:name]
       raise(ArgumentError, 'Name must be set')
     end
+
+    if self[:project] && self[:project_name]
+      raise(Puppet::Error, <<-EOT
+Please provide a value for only one of project_name and project.
+EOT
+      )
+    end
   end
 
 end
-

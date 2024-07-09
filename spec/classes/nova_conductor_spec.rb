@@ -20,13 +20,15 @@ describe 'nova::conductor' do
       :ensure    => 'running'
     )}
 
+    it { is_expected.to contain_class('nova::availability_zone') }
+
     context 'with manage_service as false' do
       let :params do
-        { :enabled        => true,
+        {
           :manage_service => false
         }
       end
-      it { is_expected.to contain_service('nova-conductor').without_ensure }
+      it { is_expected.to_not contain_service('nova-conductor') }
     end
 
     context 'with package version' do
@@ -39,11 +41,15 @@ describe 'nova::conductor' do
       )}
     end
 
-    context 'with overriden workers parameter' do
+    context 'with default workers parameter' do
+      it { is_expected.to contain_nova_config('conductor/workers').with_value(2) }
+    end
+
+    context 'with overridden workers parameter' do
       let :params do
-        {:workers => '5' }
+        {:workers => 5 }
       end
-      it { is_expected.to contain_nova_config('conductor/workers').with_value('5') }
+      it { is_expected.to contain_nova_config('conductor/workers').with_value(5) }
     end
 
     context 'with default enable_new_services parameter' do
@@ -58,33 +64,6 @@ describe 'nova::conductor' do
       it { is_expected.to contain_nova_config('DEFAULT/enable_new_services').with_value(false) }
     end
 
-    context 'with default database parameters' do
-      let :pre_condition do
-        "include nova"
-      end
-
-      it { is_expected.to_not contain_nova_config('database/connection') }
-      it { is_expected.to_not contain_nova_config('database/slave_connection') }
-      it { is_expected.to_not contain_nova_config('database/idle_timeout').with_value('<SERVICE DEFAULT>') }
-    end
-
-    context 'with overridden database parameters' do
-      let :pre_condition do
-        "class { 'nova':
-           database_connection   => 'mysql://user:pass@db/db',
-           slave_connection      => 'mysql://user:pass@slave/db',
-           database_idle_timeout => '30',
-         }
-        "
-      end
-
-      it { is_expected.to contain_oslo__db('nova_config').with(
-        :connection       => 'mysql://user:pass@db/db',
-        :slave_connection => 'mysql://user:pass@slave/db',
-        :idle_timeout     => '30',
-      )}
-    end
-
   end
 
   on_supported_os({
@@ -92,11 +71,11 @@ describe 'nova::conductor' do
   }).each do |os,facts|
     context "on #{os}" do
       let (:facts) do
-        facts.merge!(OSDefaults.get_facts())
+        facts.merge!(OSDefaults.get_facts({ :os_workers => 2 }))
       end
 
       let (:platform_params) do
-        case facts[:osfamily]
+        case facts[:os]['family']
         when 'Debian'
           { :conductor_package_name => 'nova-conductor',
             :conductor_service_name => 'nova-conductor' }
